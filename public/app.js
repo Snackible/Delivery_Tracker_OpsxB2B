@@ -23,6 +23,8 @@ const S = {
   loaded: false,
 };
 
+const first = (v) => String(v || "").trim().toLowerCase().split(/s+/)[0];
+const isMine = (o) => Boolean(S.me?.poc) && (o.poc.toLowerCase() === S.me.poc.toLowerCase() || first(o.poc) === first(S.me.poc));
 const isBD = () => S.me && ["b2b", "admin"].includes(S.me.role);
 const isOps = () => S.me && ["ops", "admin"].includes(S.me.role);
 
@@ -306,8 +308,8 @@ function matchesSearch(o) {
 function renderOrders() {
   const f = FILTERS.find((x) => x.id === S.filter) || FILTERS[0];
   const owners = [...new Set(S.orders.map((o) => o.poc).filter(Boolean))].sort();
-  const hasMine = owners.some((p) => p.toLowerCase() === (S.me.poc || "").toLowerCase());
-  const list = S.orders.filter((o) => f.test(o) && matchesSearch(o) && (!S.owner || o.poc === S.owner) && (!S.mine || o.poc.toLowerCase() === (S.me.poc || "").toLowerCase()));
+  const hasMine = S.orders.some(isMine);
+  const list = S.orders.filter((o) => f.test(o) && matchesSearch(o) && (!S.owner || o.poc === S.owner) && (!S.mine || isMine(o)));
   const chips = FILTERS.map((x) => {
     const n = S.orders.filter(x.test).length;
     return `<button type="button" class="fchip" data-filter="${x.id}" aria-pressed="${S.filter === x.id}">${x.label}<span class="n ${x.cls}${n === 0 ? " zero" : ""}">${n}</span></button>`;
