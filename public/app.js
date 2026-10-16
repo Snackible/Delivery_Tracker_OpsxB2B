@@ -55,12 +55,12 @@ async function api(path, { method = "GET", body, quiet401 = false } = {}) {
   return data;
 }
 
-function toast(message, bad = false) {
+function toast(message, bad = false, long = false) {
   const el = document.createElement("div");
-  el.className = `toast${bad ? " err" : ""}`;
+  el.className = `toast${bad ? " err" : ""}${long ? " alert" : ""}`;
   el.textContent = message;
   $("#toasts").append(el);
-  setTimeout(() => el.remove(), bad ? 6000 : 3500);
+  setTimeout(() => el.remove(), long ? 15000 : bad ? 6000 : 3500);
 }
 
 async function guard(fn) {
@@ -108,27 +108,56 @@ function unlockAudio() {
 document.addEventListener("pointerdown", unlockAudio, { passive: true });
 document.addEventListener("keydown", unlockAudio);
 
-function tone(freq, start, length, volume = 0.14) {
+function tone(freq, start, length, volume = 0.7, type = "sawtooth") {
   const c = Sound.ctx;
   const osc = c.createOscillator();
   const gain = c.createGain();
-  osc.type = "sine";
+  osc.type = type;
   osc.frequency.value = freq;
+  // Near-instant attack and a held level, then a short release: loud and blunt, not a soft chime.
   gain.gain.setValueAtTime(0.0001, c.currentTime + start);
-  gain.gain.exponentialRampToValueAtTime(volume, c.currentTime + start + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + start + length);
+  gain.gain.linearRampToValueAtTime(volume, c.currentTime + start + 0.005);
+  gain.gain.setValueAtTime(volume, c.currentTime + start + length - 0.03);
+  gain.gain.linearRampToValueAtTime(0.0001, c.currentTime + start + length);
   osc.connect(gain).connect(c.destination);
   osc.start(c.currentTime + start);
   osc.stop(c.currentTime + start + length + 0.05);
 }
 
-/** kind: "urgent" = three quick high beeps, "late" = a lower two-note drop, "ok" = a soft single note. */
+/**
+ * Alarms. "urgent" is a two-tone siren, about three seconds. "late" is a three-blast klaxon.
+ * Both are at near full volume on purpose.
+ */
 function chime(kind) {
   unlockAudio();
   if (!Sound.ctx || Sound.ctx.state !== "running") return;
-  if (kind === "urgent") [880, 1175, 880].forEach((f, i) => tone(f, i * 0.16, 0.14, 0.16));
-  else if (kind === "late") [659, 523].forEach((f, i) => tone(f, i * 0.22, 0.28));
-  else tone(784, 0, 0.18, 0.1);
+  if (kind === "urgent") {
+    for (let i = 0; i < 8; i++) tone(i % 2 ? 740 : 988, i * 0.38, 0.36, 0.8);
+  } else if (kind === "late") {
+    for (let i = 0; i < 3; i++) tone(i === 2 ? 330 : 440, i * 0.5, 0.42, 0.7, "square");
+  } else {
+    tone(784, 0, 0.18, 0.4, "triangle");
+  }
+}
+
+/** Flash the tab title (and buzz a phone) so an alert is noticed even when the tab is in the background. */
+let titleTimer = null;
+const baseTitle = document.title;
+function flashTitle(text) {
+  clearInterval(titleTimer);
+  let on = false;
+  let n = 0;
+  titleTimer = setInterval(() => {
+    on = !on;
+    document.title = on ? text : baseTitle;
+    if (++n > 40 || (!document.hidden && n > 6)) {
+      clearInterval(titleTimer);
+      document.title = baseTitle;
+    }
+  }, 700);
+  try {
+    navigator.vibrate?.([300, 120, 300, 120, 300]);
+  } catch {}
 }
 
 // ---------- login / shell ----------
@@ -220,10 +249,12 @@ function alertOnChanges(orders, announce) {
       S.flash = new Set(newUrgent);
       setTimeout(() => (S.flash = null), 4000);
       chime("urgent");
-      toast(newUrgent.length === 1 ? `${newUrgent[0]} was just marked urgent` : `${newUrgent.length} orders were just marked urgent`);
+      flashTitle("🚨 URGENT order");
+      toast(newUrgent.length === 1 ? `${newUrgent[0]} was just marked urgent` : `${newUrgent.length} orders were just marked urgent`, false, true);
     } else if (newLate.length) {
       chime("late");
-      toast(newLate.length === 1 ? `${newLate[0]} is now overdue` : `${newLate.length} orders are now overdue`);
+      flashTitle("⚠️ Order overdue");
+      toast(newLate.length === 1 ? `${newLate[0]} is now overdue` : `${newLate.length} orders are now overdue`, false, true);
     }
   }
   S.seen = { urgent, late };
