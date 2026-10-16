@@ -397,8 +397,6 @@ a.btn { text-decoration: none; }
 }
 .login-hero { display: none; }
 @media (min-width: 900px) { .login-hero { display: grid; } }
-.hero-copy h2 { font-size: clamp(30px, 3.4vw, 44px); line-height: 1.08; letter-spacing: -0.025em; }
-.hero-copy p { margin-top: 14px; max-width: 42ch; color: var(--muted); font-size: 16px; line-height: 1.5; }
 .hero-rail { width: 100%; max-width: 560px; overflow: visible; }
 .hero-rail .ha, .hero-rail .ht line { stroke: var(--line-strong); stroke-width: 1.5; }
 .hero-rail .htoday { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 4; }
