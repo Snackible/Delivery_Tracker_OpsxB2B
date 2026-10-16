@@ -95,8 +95,20 @@ function toggleTheme() {
 
 // ---------- login / shell ----------
 
+async function probeRegister() {
+  try {
+    const r = await fetch("/api/register");
+    $("#showRegister").hidden = !(await r.json()).enabled;
+  } catch {
+    $("#showRegister").hidden = true;
+  }
+}
+
 function showLogin() {
   S.me = null;
+  $("#registerForm").hidden = true;
+  $("#loginForm").hidden = false;
+  probeRegister();
   $("#shell").hidden = true;
   $("#login").hidden = false;
   $("#lp").value = "";
@@ -331,6 +343,7 @@ function renderQueue() {
 function head(title, sub) {
   return `<div class="page-head"><h1>${esc(title)}</h1><span class="sub">${esc(sub)}</span>
     <button class="btn ghost" type="button" data-act="refresh" aria-label="Refresh">${icon("refresh")}Refresh</button>
+    ${S.me.master ? `<button class="btn" type="button" data-act="remind-all" title="Email every ops user a full list of open orders">${icon("mail")}Email ops about all orders</button>` : ""}
     ${isBD() ? `<button class="btn primary" type="button" data-act="remind-top">${icon("bell")}Remind ops</button>` : ""}</div>`;
 }
 
@@ -484,6 +497,7 @@ const handlers = {
   },
   remind: (ref) => openRemind([ref]),
   "remind-top": () => openRemind(null),
+  "remind-all": () => openRemindAll(),
   "add-lead": () => openLeadDialog(),
   followup: (_ref, row) => {
     const lead = S.leads.find((l) => l.leadRef === row);
@@ -527,6 +541,31 @@ function openLeadDialog() {
       await loadLeads();
       toast("Lead added");
     } }],
+  });
+}
+
+// ---------- master button: email ops about every open order ----------
+
+async function openRemindAll() {
+  await guard(async () => {
+    const p = await api("remind-all");
+    const c = p.counts || {};
+    const rows = [["Urgent", c.urgent], ["Overdue", c.overdue], ["Due today", c.today], ["Due tomorrow", c.tomorrow], ["Due later", c.later], ["Needs a date", c.needsDate]]
+      .filter(([, n]) => n)
+      .map(([label, n]) => `<li><b>${n}</b> ${label}</li>`)
+      .join("");
+    const none = !p.recipients.length;
+    openDialog({
+      title: "Email ops about all orders",
+      body: `<p>This sends one email now, from you, listing all <b>${p.open}</b> open orders:</p><ul class="count-list">${rows}</ul>
+        <p><b>To:</b> ${p.recipients.length ? esc(p.recipients.join(", ")) : "nobody yet"}</p>
+        ${p.missingEmail.length ? `<p class="hint">No email address saved for ${esc(p.missingEmail.join(", "))}. Add one from Remind ops.</p>` : ""}
+        <p class="hint">This is separate from the daily email and does not replace it.</p>`,
+      buttons: [{ label: "Cancel" }, ...(none ? [] : [{ label: "Send to ops now", kind: "primary", run: async () => {
+        const r = await api("remind-all", { method: "POST", body: {} });
+        toast(r.dryRun ? `Prepared for ${r.recipients.join(", ")} (demo: not sent)` : `Emailed ${r.recipients.join(", ")}`);
+      } }])],
+    });
   });
 }
 
@@ -733,6 +772,40 @@ $("#loginForm").addEventListener("submit", async (e) => {
     S.me = data.user;
     S.mode = data.mode;
     showShell();
+  } catch (ex) {
+    err.textContent = ex.message;
+    err.hidden = false;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("#showRegister").addEventListener("click", () => {
+  $("#loginForm").hidden = true;
+  $("#registerForm").hidden = false;
+  $("#registerErr").hidden = true;
+  $("#rm").focus();
+});
+$("#backToLogin").addEventListener("click", () => {
+  $("#registerForm").hidden = true;
+  $("#loginForm").hidden = false;
+  $("#lu").focus();
+});
+$("#registerForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = $("#registerErr");
+  err.hidden = true;
+  const btn = $("button[type=submit]", e.target);
+  btn.disabled = true;
+  try {
+    const f = new FormData(e.target);
+    const res = await api("register", { method: "POST", body: Object.fromEntries(f), quiet401: true });
+    e.target.reset();
+    $("#registerForm").hidden = true;
+    $("#loginForm").hidden = false;
+    $("#lu").value = res.username;
+    $("#lp").focus();
+    toast(`Account created. Sign in as ${res.username}.`);
   } catch (ex) {
     err.textContent = ex.message;
     err.hidden = false;

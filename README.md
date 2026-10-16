@@ -26,6 +26,10 @@ Open http://localhost:3000. With no Google credentials it runs on bundled demo d
 
 **Tabs the app creates** in the orders spreadsheet: `Tracker_Meta` (urgent flags and ops notes) and `Tracker_State` (the date of the last daily email). No logs are kept.
 
+## Registering new users
+
+Set `MASTER_PASSWORD` in `.env` (and in Vercel). The sign-in screen then shows **Register a new user**: whoever knows the master password can add a BD or Ops account (username, password, the name shown on orders, optional email and WhatsApp number). The new row is added to the users sheet. Admin accounts are added in the sheet by hand. With no master password set, registration is off. Wrong guesses are rate-limited per address.
+
 ## How status works
 
 | Status | Rule |
@@ -46,6 +50,7 @@ Expected dates may be `dd/mm/yy`, `17th October` and similar. **Asap is due on t
 ## Reminders
 
 - **Manual** (BD): pick orders, pick recipients from the users sheet, send by email and/or WhatsApp. If someone has no email or number, **Add email / Add number** saves it to the users sheet for next time. **Send to someone else** takes a one-off email or WhatsApp number that is not saved. Email goes out as the signed-in user when their address is on the verified sending domain; otherwise it comes from `EMAIL_FROM` with Reply-To set to them. WhatsApp opens a `wa.me` chat and a person presses Send. Not logged.
+- **Master button** ("Email ops about all orders"): shown to admins and to the usernames in `MASTER_SENDERS` (default `Dhyana`). One click, after a confirm dialog, emails every ops user (who has an email saved) a full list of all open orders, from the signed-in sender. It is separate from the daily email and does not replace it.
 - **Automatic**: **one email a day to ops** (urgent first, then overdue, due today, due tomorrow, and a short needs-a-date list), sent after `DIGEST_HOUR_IST`. It goes out on the first orders load of the day or when the Apps Script timer calls the app, whichever comes first. The one-a-day marker is a single row in `Tracker_State`. This is not atomic like a database, so in a rare race ops could get two.
 - Without `RESEND_API_KEY`, emails are a dry run and only logged to the server console.
 

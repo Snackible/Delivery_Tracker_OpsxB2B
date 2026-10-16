@@ -3,7 +3,7 @@ import { sendManual } from "../lib/reminders.js";
 
 // Manual reminder, sent as the logged-in user. Not logged, and it never blocks the daily email.
 // Besides chosen users it accepts one-off emails and WhatsApp numbers that are not saved anywhere.
-const lastSend = new Map(); // short per-user cooldown against double clicks (per instance)
+const lastSend = (globalThis.__remindLast ??= new Map()); // per instance; survives the dev server re-importing this file
 
 export default route({ methods: ["POST"], roles: ["b2b", "admin"] }, async ({ body, user, me }) => {
   const key = me.username;

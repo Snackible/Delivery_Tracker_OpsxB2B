@@ -130,6 +130,9 @@ label.inline { display: flex; align-items: center; gap: 8px; margin: 0; font-wei
 }
 .login-card .btn { margin-top: 18px; }
 .login-card .muted { margin: 4px 0 6px; }
+.login-card .btn.ghost { margin-top: 6px; }
+.link-btn.center { display: block; margin: 16px auto 0; }
+.login { padding-block: 32px; }
 
 /* ---------- brand ---------- */
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
@@ -289,6 +292,7 @@ dialog::backdrop { background: rgb(10 15 22 / 0.5); }
 .prow .inline-add input { flex: 1 1 200px; min-height: 32px; }
 .link-btn { display: inline-block; margin: 0 8px 6px 32px; padding: 0; border: 0; background: none; color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .else { margin-top: 12px; }
+.count-list { margin: 10px 0; padding-left: 20px; display: grid; gap: 2px; }
 .else summary { cursor: pointer; font-weight: 600; color: var(--accent); }
 .links { display: grid; gap: 8px; margin-top: 12px; }
 

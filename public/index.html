@@ -63,6 +63,30 @@
     <p id="loginErr" class="form-error" role="alert" hidden></p>
     <button class="btn primary block" type="submit">Sign in</button>
     <p id="demoHint" class="hint" hidden></p>
+    <button id="showRegister" class="link-btn center" type="button" hidden>Register a new user</button>
+  </form>
+
+  <form id="registerForm" class="login-card" autocomplete="off" hidden>
+    <div class="brand brand-lg"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7"/><path d="M9 9v14M16 9v14M23 9v14" stroke-width="2.4" stroke-linecap="round"/></svg><span>Delivery Tracker</span></div>
+    <p class="muted">Register a new user. You need the master password.</p>
+    <label for="rm">Master password</label>
+    <input id="rm" name="master" type="password" autocomplete="off" required>
+    <label for="ru">Username</label>
+    <input id="ru" name="username" autocomplete="off" required>
+    <label for="rp">Password</label>
+    <input id="rp" name="password" type="password" autocomplete="new-password" minlength="6" required>
+    <label for="rr">Role</label>
+    <select id="rr" name="role"><option value="b2b">BD team</option><option value="ops">Ops</option></select>
+    <label for="rn">Name shown on orders</label>
+    <input id="rn" name="display_name" autocomplete="off" required>
+    <p class="hint">BD: use the same first name as the owner on the orders sheet, for example Dhyana, so "My orders" works.</p>
+    <label for="re">Email <span class="muted">(optional)</span></label>
+    <input id="re" name="email" type="email" autocomplete="off">
+    <label for="rc">WhatsApp number <span class="muted">(optional, with country code)</span></label>
+    <input id="rc" name="contact" type="tel" autocomplete="off" placeholder="919812345678">
+    <p id="registerErr" class="form-error" role="alert" hidden></p>
+    <button class="btn primary block" type="submit">Create account</button>
+    <button id="backToLogin" class="btn ghost block" type="button">Back to sign in</button>
   </form>
 </main>
 
