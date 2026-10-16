@@ -1,17 +1,17 @@
 import { send, clientIp } from "../lib/http.js";
-import { masterMatches, isRateLimited, recordFail } from "../lib/auth.js";
+import { masterMatches, registrationEnabled, isRateLimited, recordFail } from "../lib/auth.js";
 import { addUser, httpError } from "../lib/store.js";
 import { cleanEmail, cleanPhone } from "../lib/contacts.js";
 
-// Register a new user. Allowed only with the master password (MASTER_PASSWORD). With no master
-// password set, registration is off. New users can be BD or Ops; admins are added in the sheet.
+// Register a new user. Allowed only with the master password, which is the password of the user whose
+// role is "master-admin" in the users sheet. With no master-admin user, registration is off. New users can be BD or Ops; admins are added in the sheet.
 const ROLES = ["b2b", "ops"];
 
 export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       // The sign-in screen asks this to decide whether to show the register link.
-      return send(res, 200, { enabled: Boolean(process.env.MASTER_PASSWORD) });
+      return send(res, 200, { enabled: await registrationEnabled() });
     }
     if (req.method !== "POST") {
       res.setHeader("Allow", "GET, POST");
@@ -22,11 +22,11 @@ export default async function handler(req, res) {
     const key = `register|${clientIp(req)}`;
     if (isRateLimited(key)) return send(res, 429, { error: "Too many attempts. Try again in a few minutes." });
 
-    const ok = masterMatches(String(body.master ?? ""));
-    if (ok === null) return send(res, 403, { error: "Registration is not switched on. Ask an admin to set a master password." });
+    const ok = await masterMatches(String(body.master ?? ""));
+    if (ok === null) return send(res, 403, { error: "Registration is not switched on. The users sheet needs a user with the role master-admin." });
     if (!ok) {
       recordFail(key);
-      return send(res, 401, { error: "That master password is not right." });
+      return send(res, 401, { error: "That is not the master admin password." });
     }
 
     const username = String(body.username ?? "").trim();

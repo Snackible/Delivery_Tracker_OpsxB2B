@@ -28,7 +28,7 @@ Open http://localhost:3000. With no Google credentials it runs on bundled demo d
 
 ## Registering new users
 
-Set `MASTER_PASSWORD` in `.env` (and in Vercel). The sign-in screen then shows **Register a new user**: whoever knows the master password can add a BD or Ops account (username, password, the name shown on orders, optional email and WhatsApp number). The new row is added to the users sheet. Admin accounts are added in the sheet by hand. With no master password set, registration is off. Wrong guesses are rate-limited per address.
+The master password is the password of the user whose role is `master-admin` in the users sheet (that role signs in as a full admin). The sign-in screen shows **Register a new user**, and whoever knows that password can add a BD or Ops account (username, password, the name shown on orders, optional email and WhatsApp number). The new row is added to the users sheet. Admin accounts are added in the sheet by hand. With no master-admin user in the sheet, registration is off. Wrong guesses are rate-limited per address.
 
 ## How status works
 
