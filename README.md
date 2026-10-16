@@ -14,7 +14,7 @@ Open http://localhost:3000. With no Google credentials it runs on bundled demo d
 
 ## Connect the real sheets
 
-1. **Share** the orders spreadsheet with the service account (Editor) and the users spreadsheet (Viewer). The address is in `.env.example`.
+1. **Share** the orders spreadsheet with the service account (Editor) and the users spreadsheet (Editor, so a missing email or number saved from the dashboard is remembered). The address is in `.env.example`.
 2. Copy `.env.example` to `.env` and fill in `GOOGLE_PRIVATE_KEY` (the `private_key` from the downloaded JSON key, on one line with `\n` for line breaks), `SHEET_ID_USERS` and `SESSION_SECRET`.
 3. Restart `npm run dev`. The banner "Demo data" disappears when the sheets are connected.
 
@@ -45,7 +45,7 @@ Expected dates may be `dd/mm/yy`, `17th October` and similar. **Asap is due on t
 
 ## Reminders
 
-- **Manual** (BD): pick orders, pick recipients from the users sheet, send by email and/or WhatsApp. Email goes out as the signed-in user when their address is on the verified sending domain; otherwise it comes from `EMAIL_FROM` with Reply-To set to them. WhatsApp opens a `wa.me` chat and a person presses Send. Not logged.
+- **Manual** (BD): pick orders, pick recipients from the users sheet, send by email and/or WhatsApp. If someone has no email or number, **Add email / Add number** saves it to the users sheet for next time. **Send to someone else** takes a one-off email or WhatsApp number that is not saved. Email goes out as the signed-in user when their address is on the verified sending domain; otherwise it comes from `EMAIL_FROM` with Reply-To set to them. WhatsApp opens a `wa.me` chat and a person presses Send. Not logged.
 - **Automatic**: **one email a day to ops** (urgent first, then overdue, due today, due tomorrow, and a short needs-a-date list), sent after `DIGEST_HOUR_IST`. It goes out on the first orders load of the day or when the Apps Script timer calls the app, whichever comes first. The one-a-day marker is a single row in `Tracker_State`. This is not atomic like a database, so in a rare race ops could get two.
 - Without `RESEND_API_KEY`, emails are a dry run and only logged to the server console.
 

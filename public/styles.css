@@ -284,6 +284,12 @@ dialog::backdrop { background: rgb(10 15 22 / 0.5); }
 .pick small { color: var(--muted); }
 .pick label.off { opacity: 0.5; }
 .row2 { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+.prow { border-radius: 6px; }
+.prow .inline-add { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; padding: 2px 8px 8px 32px; }
+.prow .inline-add input { flex: 1 1 200px; min-height: 32px; }
+.link-btn { display: inline-block; margin: 0 8px 6px 32px; padding: 0; border: 0; background: none; color: var(--accent); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.else { margin-top: 12px; }
+.else summary { cursor: pointer; font-weight: 600; color: var(--accent); }
 .links { display: grid; gap: 8px; margin-top: 12px; }
 
 /* ---------- toasts ---------- */

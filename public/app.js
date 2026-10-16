@@ -530,37 +530,107 @@ function openLeadDialog() {
 
 // ---------- reminder dialog ----------
 
+const roleLabel = (r) => (r === "ops" ? "Ops" : r === "admin" ? "Admin" : "BD");
+
+function peopleHtml(checked, adding) {
+  return S.recipients
+    .map((r) => {
+      const have = [r.email ? "email" : "", r.whatsapp ? "WhatsApp" : ""].filter(Boolean).join(", ") || "no contact details";
+      const missing = [!r.email ? "email" : "", !r.whatsapp ? "number" : ""].filter(Boolean);
+      const open = adding.has(r.username);
+      const add = open
+        ? `<div class="inline-add" data-for="${esc(r.username)}">
+            ${!r.email ? `<input type="email" data-field="email" placeholder="Email address" aria-label="Email for ${esc(r.name)}" autocomplete="off">` : ""}
+            ${!r.whatsapp ? `<input type="tel" data-field="contact" placeholder="WhatsApp, e.g. 919812345678" aria-label="WhatsApp number for ${esc(r.name)}" autocomplete="off">` : ""}
+            <button class="btn small primary" type="button" data-save-contact="${esc(r.username)}">Save</button>
+            <button class="btn small ghost" type="button" data-cancel-add="${esc(r.username)}">Cancel</button>
+          </div>`
+        : missing.length
+          ? `<button class="link-btn" type="button" data-add-contact="${esc(r.username)}">Add ${missing.join(" and ")}</button>`
+          : "";
+      return `<div class="prow"><label class="inline"><input type="checkbox" name="rcpt" value="${esc(r.username)}" ${checked.has(r.username) ? "checked" : ""}><span class="grow">${esc(r.name)} <small>${roleLabel(r.role)}</small></span><small>${have}</small></label>${add}</div>`;
+    })
+    .join("");
+}
+
 async function openRemind(preRefs) {
   await guard(async () => {
-    if (!S.recipients) S.recipients = (await api("recipients")).recipients;
+    S.recipients = (await api("recipients")).recipients;
     const open = S.orders.filter((o) => OPEN.has(o.status));
     const picked = new Set(preRefs || open.filter((o) => o.urgent || o.status === "overdue").slice(0, 15).map((o) => o.ref));
     const orderList = open
       .map((o) => `<label class="inline"><input type="checkbox" name="ref" value="${esc(o.ref)}" ${picked.has(o.ref) ? "checked" : ""}><span class="grow"><b>${esc(o.ref)}</b> ${esc(o.client)}</span><small>${esc(o.label)}</small></label>`)
       .join("");
-    const people = S.recipients
-      .map((r) => `<label class="inline ${r.email || r.whatsapp ? "" : "off"}"><input type="checkbox" name="rcpt" value="${esc(r.username)}" ${r.role === "ops" ? "checked" : ""}><span class="grow">${esc(r.name)} <small>${r.role === "ops" ? "Ops" : r.role === "admin" ? "Admin" : "BD"}</small></span><small>${[r.email ? "email" : "", r.whatsapp ? "WhatsApp" : ""].filter(Boolean).join(", ") || "no contact details"}</small></label>`)
-      .join("");
+    const checked = new Set(S.recipients.filter((r) => r.role === "ops").map((r) => r.username));
+    const adding = new Set();
+
     openDialog({
       title: "Remind ops",
       body: `<label>Orders</label><div class="pick" id="pickOrders">${orderList || '<p class="muted" style="padding:8px">No open orders.</p>'}</div>
-        <label>Send to</label><div class="pick" id="pickPeople">${people || '<p class="muted" style="padding:8px">No other users found.</p>'}</div>
+        <label>Send to</label><div class="pick" id="pickPeople"></div>
+        <details class="else"><summary>Send to someone else</summary>
+          <p class="hint" style="margin-top:6px">One-off. These are used for this reminder only and are not saved.</p>
+          <label for="xEmail">Email address</label><input id="xEmail" type="text" inputmode="email" placeholder="name@company.com, another@company.com" autocomplete="off">
+          <label for="xWa">WhatsApp number</label><input id="xWa" type="tel" placeholder="With country code, for example 919812345678" autocomplete="off">
+        </details>
         <div class="row2"><label class="inline"><input type="checkbox" id="chEmail" checked>${icon("mail")}Email</label><label class="inline"><input type="checkbox" id="chWa">${icon("chat")}WhatsApp</label></div>
         <label for="msg">Message</label><textarea id="msg"></textarea>
         <p class="hint">Email is sent from your address. WhatsApp opens a chat for you to press Send.</p>`,
       buttons: [{ label: "Cancel" }, { label: "Send reminder", kind: "primary", run: (d) => sendReminder(d) }],
     });
+
     const d = dlg();
+    const paint = () => {
+      $("#pickPeople", d).innerHTML = peopleHtml(checked, adding) || '<p class="muted" style="padding:8px">No other users found.</p>';
+    };
+    paint();
+
     let dirty = false;
     const refsNow = () => [...d.querySelectorAll('input[name="ref"]:checked')].map((i) => i.value);
     const preview = async () => {
       if (dirty) return;
-      const r = await api("recipients", { method: "POST", body: { refs: refsNow() } }).catch(() => null);
+      const r = await api("recipients", { method: "POST", body: { action: "preview", refs: refsNow() } }).catch(() => null);
       if (r && !dirty) $("#msg", d).value = r.message;
     };
     $("#msg", d).addEventListener("input", () => (dirty = true));
     $("#pickOrders", d).addEventListener("change", preview);
     preview();
+
+    const people = $("#pickPeople", d);
+    people.addEventListener("change", (e) => {
+      if (e.target.name !== "rcpt") return;
+      e.target.checked ? checked.add(e.target.value) : checked.delete(e.target.value);
+    });
+    people.addEventListener("click", async (e) => {
+      const add = e.target.closest("[data-add-contact]");
+      const cancel = e.target.closest("[data-cancel-add]");
+      const save = e.target.closest("[data-save-contact]");
+      if (add) {
+        adding.add(add.dataset.addContact);
+        paint();
+        $(`[data-for="${CSS.escape(add.dataset.addContact)}"] input`, d)?.focus();
+      } else if (cancel) {
+        adding.delete(cancel.dataset.cancelAdd);
+        paint();
+      } else if (save) {
+        const user = save.dataset.saveContact;
+        const box = $(`[data-for="${CSS.escape(user)}"]`, d);
+        const email = $('[data-field="email"]', box)?.value || "";
+        const contact = $('[data-field="contact"]', box)?.value || "";
+        save.disabled = true;
+        try {
+          const res = await api("recipients", { method: "POST", body: { action: "save-contact", username: user, email, contact } });
+          S.recipients = res.recipients;
+          adding.delete(user);
+          checked.add(user);
+          paint();
+          toast("Saved. It will be there next time.");
+        } catch (err) {
+          if (!(err instanceof SignedOut)) toast(err.message, true);
+          save.disabled = false;
+        }
+      }
+    });
   });
 }
 
@@ -568,7 +638,10 @@ async function sendReminder(d) {
   const refs = [...d.querySelectorAll('input[name="ref"]:checked')].map((i) => i.value);
   const recipients = [...d.querySelectorAll('input[name="rcpt"]:checked')].map((i) => i.value);
   const channels = [$("#chEmail", d).checked ? "email" : "", $("#chWa", d).checked ? "whatsapp" : ""].filter(Boolean);
-  const r = await api("remind", { method: "POST", body: { refs, recipients, channels, message: $("#msg", d).value } });
+  const r = await api("remind", {
+    method: "POST",
+    body: { refs, recipients, channels, message: $("#msg", d).value, extraEmails: $("#xEmail", d).value, extraNumbers: $("#xWa", d).value },
+  });
   const lines = [];
   if (r.emailed.length) lines.push(`<p>${icon("mail")} Emailed ${esc(r.emailed.join(", "))}.${r.dryRun ? " <span class='muted'>Demo mode: nothing was actually sent.</span>" : ""}</p>`);
   if (r.skippedEmail.length) lines.push(`<p class="muted">No email address for ${esc(r.skippedEmail.join(", "))}.</p>`);
