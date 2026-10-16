@@ -6,7 +6,7 @@
 <title>Delivery Tracker</title>
 <meta name="description" content="Snackible B2B and Ops delivery tracker">
 <meta name="color-scheme" content="light dark">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231F5FA8'/%3E%3Cpath d='M9 9v14M16 9v14M23 9v14' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231F5FA8'/%3E%3Cpath d='M5 22.500h22' stroke='%23fff' stroke-opacity='.55' stroke-width='1.600' stroke-linecap='round'/%3E%3Cpath d='M9 10v14M15 10v14' stroke='%23fff' stroke-width='2.600' stroke-linecap='round'/%3E%3Cpath d='M21 10v14M25 10v14' stroke='%23FFD166' stroke-width='2.600' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -24,6 +24,12 @@
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
+    <symbol id="brand-mark" viewBox="0 0 32 32">
+      <rect width="32" height="32" rx="8" fill="var(--accent)"/>
+      <path d="M5 22.500h22" stroke="var(--on-accent)" stroke-opacity=".55" stroke-width="1.600" stroke-linecap="round"/>
+      <path d="M9 10v14M15 10v14" stroke="var(--on-accent)" stroke-width="2.600" stroke-linecap="round"/>
+      <path d="M21 10v14M25 10v14" stroke="var(--mark-late)" stroke-width="2.600" stroke-linecap="round"/>
+    </symbol>
     <symbol id="i-orders" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
     <symbol id="i-queue" viewBox="0 0 24 24"><path d="M5 5v14M12 5v14M19 5v14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
     <symbol id="i-pipeline" viewBox="0 0 24 24"><path d="M4 7h10M4 12h16M4 17h7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="18" cy="7" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/></symbol>
@@ -32,6 +38,7 @@
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M9.500 12h5M12.500 9.500L15 12l-2.500 2.500" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M12 10v4.5M12 17.4v.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
     <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
     <symbol id="i-dash" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-dasharray="3 3"/></symbol>
@@ -45,6 +52,8 @@
     <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M4 8l8 5.5L20 8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 18.5l1-3.2A7.5 7.5 0 1112 19.5a7.600 7.600 0 01-3.300-.8z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
     <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 5h14v10l-4 4H5z M15 19v-4h4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M5 9.5h3.2L13 5.5v13l-4.800-4H5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M16.500 9a4 4 0 010 6M18.800 6.700a7.500 7.500 0 010 10.600" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M5 9.5h3.2L13 5.5v13l-4.800-4H5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M16.500 9.500l5 5M21.500 9.500l-5 5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
     <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 8L5 12l4 4M5 12h9a5 5 0 010 10" transform="translate(0 -3)" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
@@ -53,8 +62,27 @@
 
 <!-- Sign in -->
 <main id="login" class="login" hidden>
+  <aside class="login-hero" aria-hidden="true">
+    <div class="hero-copy"><h2>Every delivery,<br>on the rail.</h2><p>See what is late, nudge the right person, and mark it delivered. Status works itself out from the dates.</p></div>
+    <svg class="hero-rail" viewBox="0 0 500 160" preserveAspectRatio="xMidYMid meet">
+      <line class="ha" x1="20" x2="480" y1="80" y2="80"/>
+      <g class="ht"><line x1="20" x2="20" y1="72" y2="88"/><line x1="135" x2="135" y1="74" y2="86"/><line x1="250" x2="250" y1="66" y2="94"/><line x1="365" x2="365" y1="74" y2="86"/><line x1="480" x2="480" y1="72" y2="88"/></g>
+      <line class="htoday" x1="250" x2="250" y1="30" y2="132"/>
+      <text x="250" y="150" text-anchor="middle">today</text><text x="20" y="150">14 days late</text><text x="480" y="150" text-anchor="end">14 days ahead</text>
+      <g class="hm hm-overdue" style="animation-delay:0ms"><line x1="86" x2="86" y1="44" y2="116"/><line x1="93" x2="93" y1="44" y2="116"/></g>
+        <g class="hm hm-overdue" style="animation-delay:90ms"><line x1="130" x2="130" y1="44" y2="116"/><line x1="137" x2="137" y1="44" y2="116"/></g>
+        <g class="hm hm-today" style="animation-delay:180ms"><line x1="214" x2="214" y1="44" y2="116"/></g>
+        <g class="hm hm-upcoming" style="animation-delay:270ms"><line x1="262" x2="262" y1="44" y2="116"/></g>
+        <g class="hm hm-upcoming" style="animation-delay:360ms"><line x1="318" x2="318" y1="44" y2="116"/></g>
+        <g class="hm hm-urgent" style="animation-delay:450ms"><line x1="58" x2="58" y1="44" y2="116"/><line x1="65" x2="65" y1="44" y2="116"/></g>
+        <g class="hm hm-needs" style="animation-delay:540ms"><line x1="440" x2="440" y1="44" y2="116"/></g>
+        <g class="hm hm-upcoming" style="animation-delay:630ms"><line x1="372" x2="372" y1="44" y2="116"/></g>
+        <g class="hm hm-overdue" style="animation-delay:720ms"><line x1="104" x2="104" y1="44" y2="116"/><line x1="111" x2="111" y1="44" y2="116"/></g>
+        <g class="hm hm-upcoming" style="animation-delay:810ms"><line x1="410" x2="410" y1="44" y2="116"/></g>
+    </svg>
+  </aside>
   <form id="loginForm" class="login-card" autocomplete="on">
-    <div class="brand brand-lg"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7"/><path d="M9 9v14M16 9v14M23 9v14" stroke-width="2.4" stroke-linecap="round"/></svg><span>Delivery Tracker</span></div>
+    <div class="brand brand-lg"><svg class="mark" aria-hidden="true"><use href="#brand-mark"/></svg><span>Delivery Tracker</span></div>
     <p class="muted">Snackible B2B and Ops</p>
     <label for="lu">Username</label>
     <input id="lu" name="username" autocomplete="username" required autofocus>
@@ -67,7 +95,7 @@
   </form>
 
   <form id="registerForm" class="login-card" autocomplete="off" hidden>
-    <div class="brand brand-lg"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7"/><path d="M9 9v14M16 9v14M23 9v14" stroke-width="2.4" stroke-linecap="round"/></svg><span>Delivery Tracker</span></div>
+    <div class="brand brand-lg"><svg class="mark" aria-hidden="true"><use href="#brand-mark"/></svg><span>Delivery Tracker</span></div>
     <p class="muted">Register a new user. You need the master admin password.</p>
     <label for="rm">Master admin password</label>
     <input id="rm" name="master" type="password" autocomplete="off" required>
@@ -93,9 +121,10 @@
 <!-- App -->
 <div id="shell" class="shell" hidden>
   <aside class="side" aria-label="Main">
-    <div class="brand"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7"/><path d="M9 9v14M16 9v14M23 9v14" stroke-width="2.4" stroke-linecap="round"/></svg><span>Delivery Tracker</span></div>
+    <div class="brand"><svg class="mark" aria-hidden="true"><use href="#brand-mark"/></svg><span>Delivery Tracker<small>BD x Ops</small></span></div>
     <nav id="nav" class="nav"></nav>
     <div class="side-foot">
+      <button id="soundBtn" class="btn ghost block" type="button" aria-pressed="true"></button>
       <button id="themeBtn" class="btn ghost block" type="button"></button>
       <div class="who"><div><strong id="whoName"></strong><span id="whoRole" class="muted"></span></div>
         <button id="logoutBtn" class="icon-btn" type="button" aria-label="Sign out" title="Sign out"><svg class="i"><use href="#i-logout"/></svg></button></div>
@@ -103,8 +132,9 @@
   </aside>
 
   <header class="mobile-bar">
-    <div class="brand"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7"/><path d="M9 9v14M16 9v14M23 9v14" stroke-width="2.4" stroke-linecap="round"/></svg><span>Delivery Tracker</span></div>
+    <div class="brand"><svg class="mark" aria-hidden="true"><use href="#brand-mark"/></svg><span>Delivery Tracker</span></div>
     <div class="mobile-actions">
+      <button id="soundBtnM" class="icon-btn" type="button" aria-pressed="true"></button>
       <button id="themeBtnM" class="icon-btn" type="button" aria-label="Switch theme"></button>
       <button id="logoutBtnM" class="icon-btn" type="button" aria-label="Sign out"><svg class="i"><use href="#i-logout"/></svg></button>
     </div>

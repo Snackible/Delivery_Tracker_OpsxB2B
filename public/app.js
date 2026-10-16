@@ -5,7 +5,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const icon = (n, cls = "i") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 
 const OPEN = new Set(["overdue", "today", "upcoming", "needs_date"]);
-const STATUS_ICON = { overdue: "alert", today: "clock", upcoming: "calendar", needs_date: "dash", delivered: "check", cancelled: "x" };
+const STATUS_ICON = { overdue: "alert", today: "clock", upcoming: "next", needs_date: "dash", delivered: "check", cancelled: "x" };
 
 const S = {
   me: null,
@@ -93,6 +93,73 @@ function toggleTheme() {
   paintThemeButtons();
 }
 
+// ---------- sound alerts ----------
+// Short tones made with the Web Audio API (no files). Browsers only allow sound after the person
+// has clicked something on the page, so the audio is unlocked on the first click or key press.
+
+const Sound = {
+  ctx: null,
+  on: (() => {
+    try {
+      return localStorage.getItem("dt-sound") !== "off";
+    } catch {
+      return true;
+    }
+  })(),
+};
+
+function unlockAudio() {
+  try {
+    Sound.ctx ??= new (window.AudioContext || window.webkitAudioContext)();
+    if (Sound.ctx.state === "suspended") Sound.ctx.resume();
+  } catch {}
+}
+document.addEventListener("pointerdown", unlockAudio, { passive: true });
+document.addEventListener("keydown", unlockAudio);
+
+function tone(freq, start, length, volume = 0.14) {
+  const c = Sound.ctx;
+  const osc = c.createOscillator();
+  const gain = c.createGain();
+  osc.type = "sine";
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.0001, c.currentTime + start);
+  gain.gain.exponentialRampToValueAtTime(volume, c.currentTime + start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + start + length);
+  osc.connect(gain).connect(c.destination);
+  osc.start(c.currentTime + start);
+  osc.stop(c.currentTime + start + length + 0.05);
+}
+
+/** kind: "urgent" = three quick high beeps, "late" = a lower two-note drop, "ok" = a soft single note. */
+function chime(kind) {
+  if (!Sound.on) return;
+  unlockAudio();
+  if (!Sound.ctx || Sound.ctx.state !== "running") return;
+  if (kind === "urgent") [880, 1175, 880].forEach((f, i) => tone(f, i * 0.16, 0.14, 0.16));
+  else if (kind === "late") [659, 523].forEach((f, i) => tone(f, i * 0.22, 0.28));
+  else tone(784, 0, 0.18, 0.1);
+}
+
+function paintSoundButtons() {
+  const label = Sound.on ? "Sound on" : "Sound off";
+  const ic = Sound.on ? "sound" : "mute";
+  $("#soundBtn").innerHTML = `${icon(ic)}${label}`;
+  $("#soundBtn").setAttribute("aria-pressed", String(Sound.on));
+  $("#soundBtnM").innerHTML = icon(ic);
+  $("#soundBtnM").setAttribute("aria-label", `${label}. Switch ${Sound.on ? "off" : "on"}`);
+  $("#soundBtnM").setAttribute("aria-pressed", String(Sound.on));
+}
+
+function toggleSound() {
+  Sound.on = !Sound.on;
+  try {
+    localStorage.setItem("dt-sound", Sound.on ? "on" : "off");
+  } catch {}
+  paintSoundButtons();
+  if (Sound.on) chime("ok");
+}
+
 // ---------- login / shell ----------
 
 async function probeRegister() {
@@ -122,8 +189,10 @@ function showShell() {
   $("#whoRole").textContent = { b2b: "BD team", ops: "Ops", admin: "Admin" }[S.me.role] || S.me.role;
   S.view = isOps() && !isBD() ? "queue" : "orders";
   S.filter = "open";
+  S.seen = null;
   S.animate = true;
   paintThemeButtons();
+  paintSoundButtons();
   buildNav();
   refresh();
 }
@@ -170,8 +239,29 @@ function go(view) {
 
 // ---------- data ----------
 
-async function loadOrders(silent = false) {
+/** Orders that are newly urgent or newly overdue since the last load (never on the first load). */
+function alertOnChanges(orders, announce) {
+  const urgent = new Set(orders.filter((o) => o.urgent).map((o) => o.ref));
+  const late = new Set(orders.filter((o) => o.status === "overdue").map((o) => o.ref));
+  if (S.seen && announce) {
+    const newUrgent = [...urgent].filter((r) => !S.seen.urgent.has(r));
+    const newLate = [...late].filter((r) => !S.seen.late.has(r));
+    if (newUrgent.length) {
+      S.flash = new Set(newUrgent);
+      setTimeout(() => (S.flash = null), 4000);
+      chime("urgent");
+      toast(newUrgent.length === 1 ? `${newUrgent[0]} was just marked urgent` : `${newUrgent.length} orders were just marked urgent`);
+    } else if (newLate.length) {
+      chime("late");
+      toast(newLate.length === 1 ? `${newLate[0]} is now overdue` : `${newLate.length} orders are now overdue`);
+    }
+  }
+  S.seen = { urgent, late };
+}
+
+async function loadOrders(silent = false, announce = false) {
   const data = await api("orders");
+  alertOnChanges(data.orders, announce);
   S.orders = data.orders;
   S.mode = data.mode;
   S.loaded = true;
@@ -259,7 +349,7 @@ function actionsFor(o) {
     // A row that needs a date gets its calendar button highlighted instead of a different label.
     const needsDate = o.status === "needs_date";
     const dateLabel = needsDate ? "Set expected date" : "Change expected date";
-    h += `<button class="btn small${needsDate ? " attn" : ""}" type="button" data-act="date" title="${dateLabel}" aria-label="${dateLabel} for ${esc(o.ref)}">${icon("calendar")}<span class="lbl opt">${needsDate ? "Set date" : "Date"}</span></button>`;
+    h += `<button class="btn small${needsDate ? " attn" : ""}" type="button" data-act="date" title="${dateLabel}" aria-label="${dateLabel} for ${esc(o.ref)}"><span class="lbl">${needsDate ? "Set date" : "Date"}</span></button>`;
     h += `<button class="icon-btn" type="button" data-act="urgent" aria-pressed="${o.urgent}" aria-label="${o.urgent ? "Remove urgent flag" : "Mark urgent"}" title="${o.urgent ? "Remove urgent flag" : "Mark urgent"}">${icon("flag")}</button>`;
     h += `<button class="btn small" type="button" data-act="remind" title="Remind ops" aria-label="Remind ops about ${esc(o.ref)}">${icon("bell")}<span class="lbl">Remind</span></button>`;
     h += `<details class="menu"><summary class="icon-btn" aria-label="More actions" title="More actions">${icon("more")}</summary><div class="menu-list">
@@ -275,7 +365,7 @@ function actionsFor(o) {
 
 function rowHtml(o, i) {
   const done = o.status === "delivered" || o.status === "cancelled";
-  const cls = [o.urgent ? "is-urgent" : "", done ? "is-done" : ""].filter(Boolean).join(" ");
+  const cls = [o.urgent ? "is-urgent" : "", done ? "is-done" : "", S.flash?.has(o.ref) ? "flash" : ""].filter(Boolean).join(" ");
   const sub = esc([o.poc, productLine(o)].filter(Boolean).join(" · "));
   return `<tr class="${cls}" data-ref="${esc(o.ref)}">
     <td class="c-ref"><span class="ref">${esc(o.ref)}</span>${o.urgent ? `<span class="tag-urgent">${icon("flag")}Urgent</span>` : ""}</td>
@@ -288,7 +378,7 @@ function rowHtml(o, i) {
 }
 
 function ordersTable(list, emptyTitle, emptyText) {
-  if (!list.length) return `<div class="table-wrap"><div class="empty"><strong>${esc(emptyTitle)}</strong>${esc(emptyText)}</div></div>`;
+  if (!list.length) return `<div class="table-wrap"><div class="empty">${icon("check", "i big")}<strong>${esc(emptyTitle)}</strong>${esc(emptyText)}</div></div>`;
   return `<div class="table-wrap"><table>
     <thead><tr><th scope="col">Order</th><th scope="col">Client and owner</th><th scope="col">Due</th><th scope="col" class="rail-cell rail-head">${railHead()}</th><th scope="col">Status</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
     <tbody>${list.map(rowHtml).join("")}</tbody></table></div>`;
@@ -330,21 +420,41 @@ function renderOrders() {
     <div class="search">${icon("search")}<input id="q" type="search" placeholder="Search ref, client, owner" value="${esc(S.q)}" aria-label="Search orders"></div>
     <select id="owner" aria-label="Owner"><option value="">All owners</option>${owners.map((p) => `<option ${S.owner === p ? "selected" : ""}>${esc(p)}</option>`).join("")}</select>
     ${hasMine ? `<label class="inline"><input type="checkbox" id="mine" ${S.mine ? "checked" : ""}> My orders</label>` : ""}</div>`;
-  $("#view").innerHTML = `${head("Orders", `${list.length} shown of ${S.orders.length}`)}${demoBanner()}<div class="filters" role="group" aria-label="Filter by status">${chips}</div>${toolbar}${ordersTable(list, "Nothing here", "No orders match these filters.")}`;
+  $("#view").innerHTML = `${head("Orders", greeting())}${demoBanner()}${statusStrip()}<div class="filters" role="group" aria-label="Filter by status">${chips}</div>${toolbar}${ordersTable(list, "Nothing here", "No orders match these filters.")}`;
   S.animate = false;
 }
 
 function renderQueue() {
   const list = queueOrders();
-  $("#view").innerHTML = `${head("Ops queue", "Urgent, overdue, due today and due in the next 3 days")}${demoBanner()}${ordersTable(list, "All clear", "Nothing is late or due in the next 3 days.")}`;
+  $("#view").innerHTML = `${head("Ops queue", greeting() + ". Urgent, late, due today and due in 3 days")}${demoBanner()}${ordersTable(list, "All clear", "Nothing is late or due in the next 3 days.")}`;
   S.animate = false;
+}
+
+function greeting() {
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", hour12: false }).format(new Date())) % 24;
+  const part = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  return `${part}, ${String(S.me?.name || "").split(" ")[0]}`;
+}
+
+/** The whole open list as one bar. Each segment is a filter, and the legend spells out the counts. */
+function statusStrip() {
+  const open = S.orders.filter((o) => OPEN.has(o.status));
+  if (!open.length) return "";
+  const parts = [
+    ["overdue", "Overdue", open.filter((o) => o.status === "overdue").length],
+    ["today", "Due today", open.filter((o) => o.status === "today").length],
+    ["upcoming", "Upcoming", open.filter((o) => o.status === "upcoming").length],
+    ["needs_date", "Needs date", open.filter((o) => o.status === "needs_date").length],
+  ].filter(([, , n]) => n);
+  const segs = parts.map(([id, label, n]) => `<button type="button" class="seg s-${id}" style="flex:${n} 1 0" data-filter="${id}" aria-label="Show ${label}: ${n}" title="${label}: ${n}"></button>`).join("");
+  const legend = parts.map(([id, label, n]) => `<span><i class="dot s-${id}" style="background:var(--${id === "needs_date" ? "needs" : id})"></i><b>${n}</b> ${label.toLowerCase()}</span>`).join("");
+  return `<div class="strip" role="group" aria-label="Open orders by status">${segs}</div><div class="strip-legend">${legend}</div>`;
 }
 
 function head(title, sub) {
   return `<div class="page-head"><h1>${esc(title)}</h1><span class="sub">${esc(sub)}</span>
     <button class="btn ghost" type="button" data-act="refresh" aria-label="Refresh">${icon("refresh")}Refresh</button>
-    ${S.me.master ? `<button class="btn" type="button" data-act="remind-all" title="Email every ops user a full list of open orders">${icon("mail")}Email ops about all orders</button>` : ""}
-    ${isBD() ? `<button class="btn primary" type="button" data-act="remind-top">${icon("bell")}Remind ops</button>` : ""}</div>`;
+    ${S.me.master ? `<button class="btn primary" type="button" data-act="remind-top" title="Pick several orders and remind ops about them">${icon("bell")}Remind ops about several orders</button>` : ""}</div>`;
 }
 
 function demoBanner() {
@@ -389,11 +499,13 @@ function openDialog({ title, body, buttons }) {
     <div class="dlg-body">${body}</div><div class="dlg-foot"></div></form>`;
   const foot = $(".dlg-foot", d);
   for (const b of buttons) {
-    const el = document.createElement("button");
-    el.type = "button";
+    const el = document.createElement(b.href ? "a" : "button");
+    if (b.href) Object.assign(el, { href: b.href, target: "_blank", rel: "noopener" });
+    else el.type = "button";
     el.className = `btn ${b.kind || ""}`;
     el.textContent = b.label;
     el.addEventListener("click", async () => {
+      if (b.href) return setTimeout(() => d.close(), 150);
       if (!b.run) return d.close();
       el.disabled = true;
       try {
@@ -443,7 +555,7 @@ async function afterEdit(message) {
 // ---------- actions ----------
 
 async function orderAction(ref, action, extra = {}) {
-  await api("order-update", { method: "POST", body: { ref, action, ...extra } });
+  return api("order-update", { method: "POST", body: { ref, action, ...extra } });
 }
 
 const todayISO = () => new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
@@ -465,8 +577,10 @@ const handlers = {
     o.urgent = next; // optimistic
     render();
     try {
-      await orderAction(ref, "urgent", { urgent: next });
-      await afterEdit(next ? `${ref} marked urgent` : "Urgent flag removed");
+      const res = await orderAction(ref, "urgent", { urgent: next });
+      const n = res.notify;
+      const note = !next ? "" : n?.sent ? " Ops were emailed." : n ? ` ${n.reason}` : "";
+      await afterEdit(next ? `${ref} marked urgent.${note}` : "Urgent flag removed");
     } catch (err) {
       o.urgent = !next;
       render();
@@ -497,7 +611,6 @@ const handlers = {
   },
   remind: (ref) => openRemind([ref]),
   "remind-top": () => openRemind(null),
-  "remind-all": () => openRemindAll(),
   "add-lead": () => openLeadDialog(),
   followup: (_ref, row) => {
     const lead = S.leads.find((l) => l.leadRef === row);
@@ -544,36 +657,11 @@ function openLeadDialog() {
   });
 }
 
-// ---------- master button: email ops about every open order ----------
+// ---------- reminders (BD reminds ops) ----------
+// A row's Remind button takes that one order. The order checkboxes exist only in the master flow
+// (the top button, for master senders). Recipients are always ops people.
 
-async function openRemindAll() {
-  await guard(async () => {
-    const p = await api("remind-all");
-    const c = p.counts || {};
-    const rows = [["Urgent", c.urgent], ["Overdue", c.overdue], ["Due today", c.today], ["Due tomorrow", c.tomorrow], ["Due later", c.later], ["Needs a date", c.needsDate]]
-      .filter(([, n]) => n)
-      .map(([label, n]) => `<li><b>${n}</b> ${label}</li>`)
-      .join("");
-    const none = !p.recipients.length;
-    openDialog({
-      title: "Email ops about all orders",
-      body: `<p>This sends one email now, from you, listing all <b>${p.open}</b> open orders:</p><ul class="count-list">${rows}</ul>
-        <p><b>To:</b> ${p.recipients.length ? esc(p.recipients.join(", ")) : "nobody yet"}</p>
-        ${p.missingEmail.length ? `<p class="hint">No email address saved for ${esc(p.missingEmail.join(", "))}. Add one from Remind ops.</p>` : ""}
-        <p class="hint">This is separate from the daily email and does not replace it.</p>`,
-      buttons: [{ label: "Cancel" }, ...(none ? [] : [{ label: "Send to ops now", kind: "primary", run: async () => {
-        const r = await api("remind-all", { method: "POST", body: {} });
-        toast(r.dryRun ? `Prepared for ${r.recipients.join(", ")} (demo: not sent)` : `Emailed ${r.recipients.join(", ")}`);
-      } }])],
-    });
-  });
-}
-
-// ---------- reminder dialog ----------
-
-const roleLabel = (r) => (r === "ops" ? "Ops" : r === "admin" ? "Admin" : "BD");
-
-function peopleHtml(checked, adding) {
+function opsHtml(checked, adding) {
   return S.recipients
     .map((r) => {
       const have = [r.email ? "email" : "", r.whatsapp ? "WhatsApp" : ""].filter(Boolean).join(", ") || "no contact details";
@@ -589,53 +677,140 @@ function peopleHtml(checked, adding) {
         : missing.length
           ? `<button class="link-btn" type="button" data-add-contact="${esc(r.username)}">Add ${missing.join(" and ")}</button>`
           : "";
-      return `<div class="prow"><label class="inline"><input type="checkbox" name="rcpt" value="${esc(r.username)}" ${checked.has(r.username) ? "checked" : ""}><span class="grow">${esc(r.name)} <small>${roleLabel(r.role)}</small></span><small>${have}</small></label>${add}</div>`;
+      return `<div class="prow"><label class="inline"><input type="checkbox" name="rcpt" value="${esc(r.username)}" ${checked.has(r.username) ? "checked" : ""}><span class="grow">${esc(r.name)}</span><small>${have}</small></label>${add}</div>`;
     })
     .join("");
 }
 
+/** preRefs = [ref] for one order (row button); null = the master flow with the order checkboxes. */
 async function openRemind(preRefs) {
   await guard(async () => {
     S.recipients = (await api("recipients")).recipients;
+    const multi = !preRefs;
     const open = S.orders.filter((o) => OPEN.has(o.status));
-    const picked = new Set(preRefs || open.filter((o) => o.urgent || o.status === "overdue").slice(0, 15).map((o) => o.ref));
+    const one = multi ? null : orderByRef(preRefs[0]);
+    if (!multi && !one) throw new Error("That order is not in the list any more. Refresh and try again.");
+    const canSendNow = multi ? (await api("remind-all").catch(() => ({ canSendNow: false }))).canSendNow : false;
+
+    const picked = new Set(multi ? open.filter((o) => o.urgent || o.status === "overdue").slice(0, 15).map((o) => o.ref) : [one.ref]);
     const orderList = open
       .map((o) => `<label class="inline"><input type="checkbox" name="ref" value="${esc(o.ref)}" ${picked.has(o.ref) ? "checked" : ""}><span class="grow"><b>${esc(o.ref)}</b> ${esc(o.client)}</span><small>${esc(o.label)}</small></label>`)
       .join("");
-    const checked = new Set(S.recipients.filter((r) => r.role === "ops").map((r) => r.username));
+    const ordersHtml = multi
+      ? `<label>Orders</label>
+         <div class="quick"><button type="button" class="link-btn" data-pick="late">Urgent and late</button><button type="button" class="link-btn" data-pick="open">All ${open.length} open</button><button type="button" class="link-btn" data-pick="none">None</button></div>
+         <div class="pick" id="pickOrders">${orderList || '<p class="muted" style="padding:8px">No open orders.</p>'}</div>`
+      : `<div class="one-order"><b>${esc(one.ref)}</b> ${esc(one.client)}<span class="muted"> · ${esc(one.label)}</span></div>`;
+
+    const checked = new Set(S.recipients.map((r) => r.username));
     const adding = new Set();
 
     openDialog({
-      title: "Remind ops",
-      body: `<label>Orders</label><div class="pick" id="pickOrders">${orderList || '<p class="muted" style="padding:8px">No open orders.</p>'}</div>
+      title: multi ? "Remind ops about several orders" : `Remind ops about ${one.ref}`,
+      body: `${ordersHtml}
         <label>Send to</label><div class="pick" id="pickPeople"></div>
         <details class="else"><summary>Send to someone else</summary>
-          <p class="hint" style="margin-top:6px">One-off. These are used for this reminder only and are not saved.</p>
-          <label for="xEmail">Email address</label><input id="xEmail" type="text" inputmode="email" placeholder="name@company.com, another@company.com" autocomplete="off">
+          <p class="hint" style="margin-top:6px">One-off. Used for this reminder only and not saved.</p>
+          <label for="xEmail">Email address</label><input id="xEmail" type="text" inputmode="email" placeholder="name@company.com" autocomplete="off">
           <label for="xWa">WhatsApp number</label><input id="xWa" type="tel" placeholder="With country code, for example 919812345678" autocomplete="off">
         </details>
-        <div class="row2"><label class="inline"><input type="checkbox" id="chEmail" checked>${icon("mail")}Email</label><label class="inline"><input type="checkbox" id="chWa">${icon("chat")}WhatsApp</label></div>
+        <div class="row2"><label class="inline"><input type="checkbox" id="chEmail" checked>${icon("mail")}Email</label><label class="inline"><input type="checkbox" id="chWa" checked>${icon("chat")}WhatsApp</label></div>
         <label for="msg">Message</label><textarea id="msg"></textarea>
-        <p class="hint">Email is sent from your address. WhatsApp opens a chat for you to press Send.</p>`,
-      buttons: [{ label: "Cancel" }, { label: "Send reminder", kind: "primary", run: (d) => sendReminder(d) }],
+        <p class="hint">The buttons below open a ready-made Gmail draft or WhatsApp chat. You press Send there, so it comes from you.</p>`,
+      buttons: [{ label: "Close" }],
     });
 
     const d = dlg();
-    const paint = () => {
-      $("#pickPeople", d).innerHTML = peopleHtml(checked, adding) || '<p class="muted" style="padding:8px">No other users found.</p>';
+    const foot = $(".dlg-foot", d);
+    const live = document.createElement("div");
+    live.className = "live-links";
+    live.setAttribute("aria-live", "polite");
+    foot.prepend(live);
+    if (canSendNow) {
+      const send = document.createElement("button");
+      send.type = "button";
+      send.className = "btn";
+      send.textContent = "Send full list now";
+      send.title = "Emails every open order to ops from the tracker's mailbox";
+      send.addEventListener("click", () =>
+        guard(async () => {
+          send.disabled = true;
+          const r = await api("remind-all", { method: "POST", body: {} });
+          toast(r.dryRun ? `Prepared for ${r.recipients.join(", ")} (not sent)` : `Emailed ${r.recipients.join(", ")}`);
+          send.disabled = false;
+        })
+      );
+      foot.append(send);
+    }
+
+    const paintPeople = () => {
+      $("#pickPeople", d).innerHTML = opsHtml(checked, adding) || '<p class="muted" style="padding:8px">No ops users found in the users sheet.</p>';
     };
-    paint();
+    paintPeople();
+
+    const state = () => ({
+      refs: multi ? [...d.querySelectorAll('input[name="ref"]:checked')].map((i) => i.value) : [one.ref],
+      recipients: [...d.querySelectorAll('input[name="rcpt"]:checked')].map((i) => i.value),
+      channels: [$("#chEmail", d).checked ? "email" : "", $("#chWa", d).checked ? "whatsapp" : ""].filter(Boolean),
+      message: $("#msg", d).value,
+      extraEmails: $("#xEmail", d).value,
+      extraNumbers: $("#xWa", d).value,
+    });
+
+    // Links are rebuilt whenever anything changes, so each is a plain link that opens straight away.
+    let seq = 0;
+    const refreshLinks = async () => {
+      const mine = ++seq;
+      const s = state();
+      const note = (t) => (live.innerHTML = `<span class="muted live-note">${esc(t)}</span>`);
+      if (!s.refs.length) return note("Pick at least one order.");
+      if (!s.recipients.length && !s.extraEmails.trim() && !s.extraNumbers.trim()) return note("Pick someone to send to.");
+      if (!s.channels.length) return note("Pick email, WhatsApp, or both.");
+      try {
+        const r = await api("remind", { method: "POST", body: s });
+        if (mine !== seq) return;
+        const links = [];
+        if (r.compose) links.push(`<a class="btn primary" target="_blank" rel="noopener" href="${esc(r.compose.url)}">${icon("mail")}Open Gmail draft</a>`);
+        for (const w of r.whatsapp) links.push(`<a class="btn ${r.compose ? "" : "primary"}" target="_blank" rel="noopener" href="${esc(w.url)}">${icon("chat")}WhatsApp ${esc(w.name)}</a>`);
+        const notes = [];
+        if (r.skippedEmail.length) notes.push(`No email saved for ${r.skippedEmail.join(", ")}.`);
+        if (r.skippedWhatsapp.length) notes.push(`No WhatsApp number saved for ${r.skippedWhatsapp.join(", ")}.`);
+        if (r.compose?.trimmed) notes.push("The list was long, so the Gmail draft is shortened and points to the tracker.");
+        live.innerHTML = (links.length ? links.join("") : `<span class="muted live-note">Nobody to reach yet. Add an email or number.</span>`) + (notes.length ? `<span class="muted live-note">${esc(notes.join(" "))}</span>` : "");
+      } catch (err) {
+        if (mine === seq && !(err instanceof SignedOut)) note(err.message);
+      }
+    };
+    let timer;
+    const queue = () => {
+      clearTimeout(timer);
+      timer = setTimeout(refreshLinks, 300);
+    };
 
     let dirty = false;
-    const refsNow = () => [...d.querySelectorAll('input[name="ref"]:checked')].map((i) => i.value);
-    const preview = async () => {
-      if (dirty) return;
-      const r = await api("recipients", { method: "POST", body: { action: "preview", refs: refsNow() } }).catch(() => null);
+    const refreshMessage = async () => {
+      if (dirty) return queue();
+      const r = await api("recipients", { method: "POST", body: { action: "preview", refs: state().refs } }).catch(() => null);
       if (r && !dirty) $("#msg", d).value = r.message;
+      queue();
     };
     $("#msg", d).addEventListener("input", () => (dirty = true));
-    $("#pickOrders", d).addEventListener("change", preview);
-    preview();
+    d.addEventListener("input", queue);
+    d.addEventListener("change", queue);
+    refreshMessage();
+
+    if (multi) {
+      $("#pickOrders", d).addEventListener("change", refreshMessage);
+      d.querySelector(".quick").addEventListener("click", (e) => {
+        const how = e.target.closest("[data-pick]")?.dataset.pick;
+        if (!how) return;
+        for (const box of d.querySelectorAll('input[name="ref"]')) {
+          const o = orderByRef(box.value);
+          box.checked = how === "open" || (how === "late" && (o.urgent || o.status === "overdue"));
+        }
+        refreshMessage();
+      });
+    }
 
     const people = $("#pickPeople", d);
     people.addEventListener("change", (e) => {
@@ -648,11 +823,11 @@ async function openRemind(preRefs) {
       const save = e.target.closest("[data-save-contact]");
       if (add) {
         adding.add(add.dataset.addContact);
-        paint();
+        paintPeople();
         $(`[data-for="${CSS.escape(add.dataset.addContact)}"] input`, d)?.focus();
       } else if (cancel) {
         adding.delete(cancel.dataset.cancelAdd);
-        paint();
+        paintPeople();
       } else if (save) {
         const user = save.dataset.saveContact;
         const box = $(`[data-for="${CSS.escape(user)}"]`, d);
@@ -664,8 +839,9 @@ async function openRemind(preRefs) {
           S.recipients = res.recipients;
           adding.delete(user);
           checked.add(user);
-          paint();
+          paintPeople();
           toast("Saved. It will be there next time.");
+          queue();
         } catch (err) {
           if (!(err instanceof SignedOut)) toast(err.message, true);
           save.disabled = false;
@@ -673,27 +849,6 @@ async function openRemind(preRefs) {
       }
     });
   });
-}
-
-async function sendReminder(d) {
-  const refs = [...d.querySelectorAll('input[name="ref"]:checked')].map((i) => i.value);
-  const recipients = [...d.querySelectorAll('input[name="rcpt"]:checked')].map((i) => i.value);
-  const channels = [$("#chEmail", d).checked ? "email" : "", $("#chWa", d).checked ? "whatsapp" : ""].filter(Boolean);
-  const r = await api("remind", {
-    method: "POST",
-    body: { refs, recipients, channels, message: $("#msg", d).value, extraEmails: $("#xEmail", d).value, extraNumbers: $("#xWa", d).value },
-  });
-  const lines = [];
-  if (r.emailed.length) lines.push(`<p>${icon("mail")} Emailed ${esc(r.emailed.join(", "))}.${r.dryRun ? " <span class='muted'>Demo mode: nothing was actually sent.</span>" : ""}</p>`);
-  if (r.skippedEmail.length) lines.push(`<p class="muted">No email address for ${esc(r.skippedEmail.join(", "))}.</p>`);
-  if (r.skippedWhatsapp.length) lines.push(`<p class="muted">No WhatsApp number for ${esc(r.skippedWhatsapp.join(", "))}.</p>`);
-  const links = r.whatsapp.map((w) => `<a class="btn" target="_blank" rel="noopener" href="${esc(w.url)}">${icon("chat")}Open WhatsApp for ${esc(w.name)}</a>`).join("");
-  if (!r.whatsapp.length) {
-    toast(r.emailed.length ? "Reminder sent" : "Nothing was sent");
-    return true;
-  }
-  openDialog({ title: "Reminder ready", body: `${lines.join("")}<p style="margin-top:10px">Open each chat and press Send.</p><div class="links">${links}</div>`, buttons: [{ label: "Done", kind: "primary" }] });
-  return false;
 }
 
 // ---------- events ----------
@@ -750,6 +905,8 @@ document.addEventListener("keydown", (e) => {
 });
 
 $("#themeBtn").addEventListener("click", toggleTheme);
+$("#soundBtn").addEventListener("click", toggleSound);
+$("#soundBtnM").addEventListener("click", toggleSound);
 $("#themeBtnM").addEventListener("click", toggleTheme);
 for (const id of ["logoutBtn", "logoutBtnM"]) {
   $(`#${id}`).addEventListener("click", async () => {
@@ -816,14 +973,17 @@ $("#registerForm").addEventListener("submit", async (e) => {
 
 // Keep the list fresh while the tab is visible and nothing is being edited.
 setInterval(() => {
-  if (!S.me || document.hidden || dlg().open) return;
-  loadOrders(true).then(() => (S.view === "pipeline" ? null : render())).catch(() => {});
-}, 60_000);
+  if (!S.me) return;
+  loadOrders(true, true)
+    .then(() => (S.view === "pipeline" || dlg().open ? null : render()))
+    .catch(() => {});
+}, 30_000);
 
 // ---------- boot ----------
 
 (async function boot() {
   paintThemeButtons();
+  paintSoundButtons();
   try {
     const data = await api("session", { quiet401: true });
     S.me = data.user;

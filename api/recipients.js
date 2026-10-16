@@ -5,9 +5,9 @@ import { cleanEmail, cleanPhone } from "../lib/contacts.js";
 
 async function list(me) {
   const users = await getUsers();
-  // Names, roles and which channels each person has. Never the addresses or numbers themselves.
+  // Only ops people can be reminded. Names and which channels each has, never the addresses or numbers themselves.
   return users
-    .filter((u) => u.username !== me.username)
+    .filter((u) => String(u.role).toLowerCase() === "ops")
     .map((u) => ({
       username: u.username,
       name: u.display_name || u.username,
@@ -36,7 +36,7 @@ export default route({ methods: ["GET", "POST"], roles: ["b2b", "admin"] }, asyn
     }
     if (!Object.keys(patch).length) throw httpError(400, "Enter an email or a WhatsApp number to save.");
     const user = (await getUsers()).find((u) => u.username === body.username);
-    if (!user) throw httpError(404, "User not found.");
+    if (!user || String(user.role).toLowerCase() !== "ops") throw httpError(404, "That is not an ops user.");
     // Fill gaps only: changing an existing address or number is done in the users sheet.
     if (patch.email && user.email) throw httpError(409, "This person already has an email. Change it in the users sheet.");
     if (patch.contact && String(user.contact || "").trim()) throw httpError(409, "This person already has a WhatsApp number. Change it in the users sheet.");
