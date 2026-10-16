@@ -24,7 +24,7 @@ Open http://localhost:3000. With no Google credentials it runs on bundled demo d
 
 **Users sheet**: username, password, role (`ops`, `b2b` or `admin`), account_id, display_name, Email, Contact. `display_name` should match the Snackible POC name for "My orders". `Contact` is a WhatsApp number with country code.
 
-**Tabs the app creates** in the orders spreadsheet: `Tracker_Meta` (urgent flags and ops notes) and `Tracker_State` (the date of the last daily email). No logs are kept.
+**Tab the app creates** in the orders spreadsheet: `Tracker_Meta` (urgent flags and ops notes). No logs are kept.
 
 ## Registering new users
 
@@ -50,10 +50,11 @@ Expected dates may be `dd/mm/yy`, `17th October` and similar. **Asap is due on t
 ## Reminders
 
 - **Urgent alert:** the moment BD flags an order urgent (not when it is already urgent, or turned off) ops get an email about that order through the mail script, and the dashboard says whether it went out. A problem sending never blocks the flag.
-- **Sound alerts:** the dashboard checks for changes every 30 seconds, also in a background tab, and plays a short tone with a notice when an order is newly urgent (three high beeps) or newly overdue (a two-note drop). Tones come from the browser, no files. Browsers only allow sound after a first click on the page. The **Sound on/off** button in the sidebar (speaker icon on phones) is remembered per browser.
+- **Sound alerts:** the dashboard checks for changes every 30 seconds, also in a background tab, and plays a short tone with a notice when an order is newly urgent (three high beeps) or newly overdue (a two-note drop). There is no setting for it: it is always on. Tones come from the browser, no files, and browsers only allow sound after a first click on the page.
 - **Manual** (BD, to ops only): the **Remind** button on an order reminds ops about **that one order**, with no checkboxes. Recipients are always the ops users from the users sheet (or a one-off email or number under **Send to someone else**). **Email opens as a draft in your own Gmail** and **WhatsApp as a chat**; you press Send in each, so it comes from you, and both buttons sit ready in the dialog. If an ops user has no email or number, **Add email / Add number** saves it to the users sheet for next time. Nothing is sent by the server and nothing is logged.
+- **Resend daily email** (master senders only, the top button): sends the daily email to ops again on demand, after a confirm dialog that shows who gets it.
 - **Remind ops about several orders** (master senders only, the top button): the same dialog with order checkboxes (urgent and late are ticked, plus quick picks for all open orders), and, when the mail script is set up, **Send full list now**.
-- **Automatic**: **one email a day to ops** (urgent first, then overdue, due today, due tomorrow, and a short needs-a-date list), sent after `DIGEST_HOUR_IST`. It goes out on the first orders load of the day or when the Apps Script timer calls the app, whichever comes first. The one-a-day marker is a single row in `Tracker_State`. This is not atomic like a database, so in a rare race ops could get two.
+- **Automatic**: **one email a day to ops** (urgent first, then overdue, due today, due tomorrow, and a short needs-a-date list), sent when the Apps Script timer calls the app, around 9am India time. Every call sends, and there is no once-a-day marker, so running the timer function by hand or pressing **Resend daily email** sends it again. Nothing is sent when nothing is open or no ops user has an email saved. Opening the dashboard does not send anything.
 - **Automatic email:** the daily email to ops, urgent alerts and the master "send now" go through `appscript/Code.gs`, deployed as a web app under a Snackible Google account (`APPS_SCRIPT_MAIL_URL` + `MAIL_SECRET`). There is no "from" setting: it sends from that account, with the signed-in person's email from the Users sheet as Reply-To. With the script not set up, these emails are a dry run and only logged to the server console.
 
 ## Deploy to Vercel

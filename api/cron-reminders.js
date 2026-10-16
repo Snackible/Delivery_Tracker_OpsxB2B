@@ -1,8 +1,8 @@
 import { runDailyDigest } from "../lib/reminders.js";
 import { send } from "../lib/http.js";
 
-// Called once a day by the Apps Script trigger (appscript/Code.gs) with
-// Authorization: Bearer <CRON_SECRET>. Safe to call more often: it sends at most one email a day.
+// Called once a day (around 9am) by the Apps Script timer with Authorization: Bearer <CRON_SECRET>.
+// Every call sends the daily email to ops; there is no once-a-day marker.
 export default async function handler(req, res) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.authorization !== `Bearer ${secret}`) return send(res, 401, { error: "Unauthorized" });

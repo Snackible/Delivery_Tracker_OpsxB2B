@@ -94,19 +94,10 @@ function toggleTheme() {
 }
 
 // ---------- sound alerts ----------
-// Short tones made with the Web Audio API (no files). Browsers only allow sound after the person
+// Always on, no setting. Short tones made with the Web Audio API (no files). Browsers only allow sound after the person
 // has clicked something on the page, so the audio is unlocked on the first click or key press.
 
-const Sound = {
-  ctx: null,
-  on: (() => {
-    try {
-      return localStorage.getItem("dt-sound") !== "off";
-    } catch {
-      return true;
-    }
-  })(),
-};
+const Sound = { ctx: null };
 
 function unlockAudio() {
   try {
@@ -133,31 +124,11 @@ function tone(freq, start, length, volume = 0.14) {
 
 /** kind: "urgent" = three quick high beeps, "late" = a lower two-note drop, "ok" = a soft single note. */
 function chime(kind) {
-  if (!Sound.on) return;
   unlockAudio();
   if (!Sound.ctx || Sound.ctx.state !== "running") return;
   if (kind === "urgent") [880, 1175, 880].forEach((f, i) => tone(f, i * 0.16, 0.14, 0.16));
   else if (kind === "late") [659, 523].forEach((f, i) => tone(f, i * 0.22, 0.28));
   else tone(784, 0, 0.18, 0.1);
-}
-
-function paintSoundButtons() {
-  const label = Sound.on ? "Sound on" : "Sound off";
-  const ic = Sound.on ? "sound" : "mute";
-  $("#soundBtn").innerHTML = `${icon(ic)}${label}`;
-  $("#soundBtn").setAttribute("aria-pressed", String(Sound.on));
-  $("#soundBtnM").innerHTML = icon(ic);
-  $("#soundBtnM").setAttribute("aria-label", `${label}. Switch ${Sound.on ? "off" : "on"}`);
-  $("#soundBtnM").setAttribute("aria-pressed", String(Sound.on));
-}
-
-function toggleSound() {
-  Sound.on = !Sound.on;
-  try {
-    localStorage.setItem("dt-sound", Sound.on ? "on" : "off");
-  } catch {}
-  paintSoundButtons();
-  if (Sound.on) chime("ok");
 }
 
 // ---------- login / shell ----------
@@ -192,7 +163,6 @@ function showShell() {
   S.seen = null;
   S.animate = true;
   paintThemeButtons();
-  paintSoundButtons();
   buildNav();
   refresh();
 }
@@ -265,7 +235,6 @@ async function loadOrders(silent = false, announce = false) {
   S.orders = data.orders;
   S.mode = data.mode;
   S.loaded = true;
-  if (data.digest?.sent && !silent) toast(data.digest.dryRun ? "Daily email to ops prepared (demo: not sent)" : "Daily email sent to ops");
   paintCounts();
 }
 
@@ -454,6 +423,7 @@ function statusStrip() {
 function head(title, sub) {
   return `<div class="page-head"><h1>${esc(title)}</h1><span class="sub">${esc(sub)}</span>
     <button class="btn ghost" type="button" data-act="refresh" aria-label="Refresh">${icon("refresh")}Refresh</button>
+    ${S.me.master ? `<button class="btn" type="button" data-act="resend-daily" title="Send today's email to ops again">${icon("mail")}Resend daily email</button>` : ""}
     ${S.me.master ? `<button class="btn primary" type="button" data-act="remind-top" title="Pick several orders and remind ops about them">${icon("bell")}Remind ops about several orders</button>` : ""}</div>`;
 }
 
@@ -611,6 +581,7 @@ const handlers = {
   },
   remind: (ref) => openRemind([ref]),
   "remind-top": () => openRemind(null),
+  "resend-daily": () => openResendDaily(),
   "add-lead": () => openLeadDialog(),
   followup: (_ref, row) => {
     const lead = S.leads.find((l) => l.leadRef === row);
@@ -654,6 +625,42 @@ function openLeadDialog() {
       await loadLeads();
       toast("Lead added");
     } }],
+  });
+}
+
+// ---------- send the daily email to ops again ----------
+
+async function openResendDaily() {
+  await guard(async () => {
+    const p = await api("remind-all?kind=daily");
+    const c = p.counts || {};
+    const rows = [["Urgent", c.urgent], ["Overdue", c.overdue], ["Due today", c.today], ["Due tomorrow", c.tomorrow], ["Needs a date", c.needsDate]]
+      .filter(([, n]) => n)
+      .map(([label, n]) => `<li><b>${n}</b> ${label}</li>`)
+      .join("");
+    const none = !p.counts;
+    const buttons = [{ label: "Cancel" }];
+    if (!none && p.recipients.length && p.canSendNow) {
+      buttons.push({
+        label: "Send again now",
+        kind: "primary",
+        run: async () => {
+          const r = await api("remind-all", { method: "POST", body: { kind: "daily" } });
+          toast(r.dryRun ? `Prepared for ${r.names.join(", ")} (not sent)` : `Daily email sent again to ${r.names.join(", ")}`);
+        },
+      });
+    }
+    openDialog({
+      title: "Send the daily email again",
+      body: none
+        ? "<p>There is nothing open to email about right now.</p>"
+        : `<p>This sends today's email to ops once more. It lists:</p><ul class="count-list">${rows}</ul>
+          <p><b>To:</b> ${p.recipients.length ? esc(p.recipients.join(", ")) : "nobody yet"}</p>
+          ${p.missingEmail.length ? `<p class="hint">No email address saved for ${esc(p.missingEmail.join(", "))}. Add one from Remind ops.</p>` : ""}
+          ${p.canSendNow ? "" : '<p class="hint">Sending from the tracker is not set up yet, so nothing can be sent.</p>'}
+          <p class="hint">The automatic daily email is not affected.</p>`,
+      buttons,
+    });
   });
 }
 
@@ -905,8 +912,6 @@ document.addEventListener("keydown", (e) => {
 });
 
 $("#themeBtn").addEventListener("click", toggleTheme);
-$("#soundBtn").addEventListener("click", toggleSound);
-$("#soundBtnM").addEventListener("click", toggleSound);
 $("#themeBtnM").addEventListener("click", toggleTheme);
 for (const id of ["logoutBtn", "logoutBtnM"]) {
   $(`#${id}`).addEventListener("click", async () => {
@@ -983,7 +988,6 @@ setInterval(() => {
 
 (async function boot() {
   paintThemeButtons();
-  paintSoundButtons();
   try {
     const data = await api("session", { quiet401: true });
     S.me = data.user;

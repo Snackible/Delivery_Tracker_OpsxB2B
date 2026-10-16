@@ -51,7 +51,7 @@ function reply(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-/** Daily timer: asks the app to send its one email to ops (the app decides if one is due). */
+/** Daily timer: asks the app to send the daily email to ops. Every call sends, so running this by hand sends it again. */
 function pingTracker() {
   var props = PropertiesService.getScriptProperties();
   var url = props.getProperty('APP_URL');

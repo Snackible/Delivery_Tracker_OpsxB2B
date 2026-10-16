@@ -6,7 +6,7 @@
 <title>Delivery Tracker</title>
 <meta name="description" content="Snackible B2B and Ops delivery tracker">
 <meta name="color-scheme" content="light dark">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231F5FA8'/%3E%3Cpath d='M5 22.500h22' stroke='%23fff' stroke-opacity='.55' stroke-width='1.600' stroke-linecap='round'/%3E%3Cpath d='M9 10v14M15 10v14' stroke='%23fff' stroke-width='2.600' stroke-linecap='round'/%3E%3Cpath d='M21 10v14M25 10v14' stroke='%23FFD166' stroke-width='2.600' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231F5FA8'/%3E%3Crect x='6.500' y='12' width='17' height='13.500' rx='2.200' fill='%23fff'/%3E%3Crect x='5' y='8.500' width='20' height='5' rx='1.800' fill='%23fff'/%3E%3Crect x='13' y='8.500' width='3.600' height='17' fill='%231F5FA8' opacity='.85'/%3E%3Ccircle cx='23.500' cy='22.500' r='6.600' fill='%231F5FA8'/%3E%3Ccircle cx='23.500' cy='22.500' r='5.300' fill='%23FFD166'/%3E%3Cpath d='M21 22.600l1.900 1.900 3.300-3.600' fill='none' stroke='%235B3A00' stroke-width='1.900' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -26,9 +26,12 @@
   <defs>
     <symbol id="brand-mark" viewBox="0 0 32 32">
       <rect width="32" height="32" rx="8" fill="var(--accent)"/>
-      <path d="M5 22.500h22" stroke="var(--on-accent)" stroke-opacity=".55" stroke-width="1.600" stroke-linecap="round"/>
-      <path d="M9 10v14M15 10v14" stroke="var(--on-accent)" stroke-width="2.600" stroke-linecap="round"/>
-      <path d="M21 10v14M25 10v14" stroke="var(--mark-late)" stroke-width="2.600" stroke-linecap="round"/>
+      <rect x="6.500" y="12" width="17" height="13.500" rx="2.200" fill="var(--on-accent)"/>
+      <rect x="5" y="8.500" width="20" height="5" rx="1.800" fill="var(--on-accent)"/>
+      <rect x="13" y="8.500" width="3.600" height="17" fill="var(--accent)" opacity=".85"/>
+      <circle cx="23.500" cy="22.500" r="6.600" fill="var(--accent)"/>
+      <circle cx="23.500" cy="22.500" r="5.300" fill="var(--mark-late)"/>
+      <path d="M21 22.600l1.900 1.900 3.300-3.600" fill="none" stroke="var(--mark-late-ink)" stroke-width="1.900" stroke-linecap="round" stroke-linejoin="round"/>
     </symbol>
     <symbol id="i-orders" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
     <symbol id="i-queue" viewBox="0 0 24 24"><path d="M5 5v14M12 5v14M19 5v14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
@@ -52,8 +55,6 @@
     <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M4 8l8 5.5L20 8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
     <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 18.5l1-3.2A7.5 7.5 0 1112 19.5a7.600 7.600 0 01-3.300-.8z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
     <symbol id="i-note" viewBox="0 0 24 24"><path d="M5 5h14v10l-4 4H5z M15 19v-4h4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></symbol>
-    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M5 9.5h3.2L13 5.5v13l-4.800-4H5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M16.500 9a4 4 0 010 6M18.800 6.700a7.500 7.500 0 010 10.600" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
-    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M5 9.5h3.2L13 5.5v13l-4.800-4H5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M16.500 9.500l5 5M21.500 9.500l-5 5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></symbol>
     <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 8L5 12l4 4M5 12h9a5 5 0 010 10" transform="translate(0 -3)" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   </defs>
 </svg>
@@ -123,7 +124,6 @@
     <div class="brand"><svg class="mark" aria-hidden="true"><use href="#brand-mark"/></svg><span>Delivery Tracker<small>BD x Ops</small></span></div>
     <nav id="nav" class="nav"></nav>
     <div class="side-foot">
-      <button id="soundBtn" class="btn ghost block" type="button" aria-pressed="true"></button>
       <button id="themeBtn" class="btn ghost block" type="button"></button>
       <div class="who"><div><strong id="whoName"></strong><span id="whoRole" class="muted"></span></div>
         <button id="logoutBtn" class="icon-btn" type="button" aria-label="Sign out" title="Sign out"><svg class="i"><use href="#i-logout"/></svg></button></div>
@@ -133,7 +133,6 @@
   <header class="mobile-bar">
     <div class="brand"><svg class="mark" aria-hidden="true"><use href="#brand-mark"/></svg><span>Delivery Tracker</span></div>
     <div class="mobile-actions">
-      <button id="soundBtnM" class="icon-btn" type="button" aria-pressed="true"></button>
       <button id="themeBtnM" class="icon-btn" type="button" aria-label="Switch theme"></button>
       <button id="logoutBtnM" class="icon-btn" type="button" aria-label="Sign out"><svg class="i"><use href="#i-logout"/></svg></button>
     </div>
