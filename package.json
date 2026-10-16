@@ -1,0 +1,15 @@
+{
+  "name": "delivery-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "B2B x Ops delivery tracker over the BD Ops Sales Tracking Sheet",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

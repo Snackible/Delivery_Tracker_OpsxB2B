@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-16T00:00:00.000Z",
+  "title": "Design System: Delivery Tracker",
+  "extensions": {
+    "colorMeta": {
+      "accent": { "role": "primary", "displayName": "Steel Blue", "canonical": "#1f5fa8", "tonalRamp": ["#0d2a4b", "#133f73", "#1f5fa8", "#3b7bc4", "#5f98d6", "#8db6e5", "#bcd3ee", "#e3edf8"] },
+      "urgent": { "role": "secondary", "displayName": "Urgent Red", "canonical": "#c62828", "tonalRamp": ["#4a0d0d", "#7a1616", "#c62828", "#dc4a4a", "#e87474", "#f2a3a0", "#f9cfcc", "#fdecea"] },
+      "overdue": { "role": "secondary", "displayName": "Overdue Orange", "canonical": "#b45309", "tonalRamp": ["#3d1c03", "#6b3205", "#b45309", "#d3741f", "#e79a50", "#f2bd88", "#f8dab8", "#fdf0dc"] },
+      "today": { "role": "secondary", "displayName": "Due-today Amber", "canonical": "#f2b01e", "tonalRamp": ["#4d3500", "#7d5800", "#a16207", "#d49512", "#f2b01e", "#f7c960", "#fbe19a", "#fdf3d6"] },
+      "upcoming": { "role": "secondary", "displayName": "On-time Green", "canonical": "#1e7b4f", "tonalRamp": ["#0a2c1b", "#114a30", "#1e7b4f", "#35996a", "#5db78a", "#92d1b0", "#c1e5d2", "#e3f4ea"] },
+      "needs-date": { "role": "secondary", "displayName": "Needs-date Slate", "canonical": "#5b6777", "tonalRamp": ["#1d232b", "#333c48", "#5b6777", "#76828f", "#97a1ad", "#b9c1ca", "#d8dde3", "#eceff3"] },
+      "paper": { "role": "neutral", "displayName": "Cool Paper", "canonical": "#f3f5f8", "tonalRamp": ["#17202b", "#566475", "#8795a6", "#b9c3cf", "#d8dee6", "#e6eaf0", "#f3f5f8", "#ffffff"] },
+      "dark-paper": { "role": "neutral", "displayName": "Graphite", "canonical": "#11151a", "tonalRamp": ["#0b0e12", "#11151a", "#1a2028", "#212832", "#2b343f", "#3b4654", "#a3aebc", "#e7ecf2"] }
+    },
+    "typographyMeta": {
+      "title": { "displayName": "Page title", "purpose": "One per view, 22px/700." },
+      "headline": { "displayName": "Dialog title", "purpose": "17px/700." },
+      "body": { "displayName": "Body", "purpose": "14px/400 with tabular numerals; table and form text." },
+      "label": { "displayName": "Label", "purpose": "13px/700 on chips, counts and small buttons." },
+      "column-head": { "displayName": "Column head", "purpose": "12px/600 uppercase, table headers only." }
+    },
+    "shadows": [
+      { "name": "shadow", "value": "0 1px 2px rgb(23 32 43 / 0.06), 0 2px 8px rgb(23 32 43 / 0.05)", "purpose": "Table container, login card, menus, toasts. Darker black variant in dark theme." },
+      { "name": "dialog", "value": "0 12px 40px rgb(0 0 0 / 0.25)", "purpose": "Modal dialogs only, over a 50% navy backdrop." },
+      { "name": "urgent-halo", "value": "0 0 0 2px var(--urgent-bg), 0 0 0 3.5px var(--urgent)", "purpose": "Ring around active status chips on urgent rows." }
+    ],
+    "motion": [
+      { "name": "ease-settle", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Rail mark settle (0.7s, 14ms stagger over 30 rows) and toast pop (0.25s)." },
+      { "name": "control-transition", "value": "0.15s background-color, border-color", "purpose": "Button hover." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion: reduce disables rail settle, toast pop, button transition", "purpose": "Required for any new animation." }
+    ],
+    "breakpoints": [
+      { "name": "compact", "value": "1180px", "purpose": "Sidebar becomes top bar and bottom tab bar." },
+      { "name": "phone", "value": "860px", "purpose": "Table becomes card rows; dialogs dock as bottom sheets." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action per view.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Remind ops</button>",
+      "css": ".ds-btn { min-height: 36px; padding: 0 14px; border-radius: 8px; font: 600 14px/1.45 'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif; cursor: pointer; border: 1px solid var(--line-strong, #b9c3cf); background: var(--surface, #fff); color: var(--ink, #17202b); transition: background-color 0.15s, border-color 0.15s; } .ds-btn:hover { background: var(--surface-2, #f7f8fa); } .ds-btn-primary { background: var(--accent, #1f5fa8); border-color: var(--accent, #1f5fa8); color: var(--on-accent, #fff); } .ds-btn-primary:hover { background: var(--accent-hover, #194e8a); border-color: var(--accent-hover, #194e8a); } .ds-btn:focus-visible { outline: 2px solid var(--focus, #1f5fa8); outline-offset: 2px; }"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "Secondary actions: surface fill, strong hairline.",
+      "html": "<button class=\"ds-btn2\">Export</button>",
+      "css": ".ds-btn2 { min-height: 36px; padding: 0 14px; border-radius: 8px; font: 600 14px/1.45 'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif; cursor: pointer; border: 1px solid var(--line-strong, #b9c3cf); background: var(--surface, #fff); color: var(--ink, #17202b); transition: background-color 0.15s, border-color 0.15s; } .ds-btn2:hover { background: var(--surface-2, #f7f8fa); border-color: var(--muted, #566475); } .ds-btn2:focus-visible { outline: 2px solid var(--focus, #1f5fa8); outline-offset: 2px; }"
+    },
+    {
+      "name": "Status Chips",
+      "kind": "chip",
+      "refersTo": "chip-status-overdue",
+      "description": "Solid colour, icon and word together; needs-date is dashed outline.",
+      "html": "<span class=\"ds-chip ds-overdue\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/></svg>5d late</span> <span class=\"ds-chip ds-today\">Due today</span> <span class=\"ds-chip ds-upcoming\">In 3d</span> <span class=\"ds-chip ds-needs\">Needs date</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 26px; padding: 0 10px 0 8px; border-radius: 6px; font: 700 13px 'Hanken Grotesk', system-ui, sans-serif; white-space: nowrap; } .ds-overdue { background: var(--overdue, #b45309); color: #fff; } .ds-today { background: var(--today, #f2b01e); color: var(--today-ink, #1b1300); } .ds-upcoming { background: var(--upcoming, #1e7b4f); color: #fff; } .ds-needs { background: transparent; color: var(--needs, #5b6777); border: 1.5px dashed var(--needs, #5b6777); }"
+    },
+    {
+      "name": "Urgent Tag",
+      "kind": "chip",
+      "refersTo": "tag-urgent",
+      "description": "The only red element; flag icon plus the word Urgent.",
+      "html": "<span class=\"ds-urgent\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M5 21V4h12l-2 4 2 4H5\"/></svg>Urgent</span>",
+      "css": ".ds-urgent { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 4px; background: var(--urgent, #c62828); color: var(--urgent-ink, #fff); font: 700 11px 'Hanken Grotesk', system-ui, sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }"
+    },
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "filter-chip",
+      "description": "Pill filter with a status-coloured count badge; selected inverts to ink.",
+      "html": "<button class=\"ds-fchip\" aria-pressed=\"false\">Overdue <span class=\"ds-n\">12</span></button>",
+      "css": ".ds-fchip { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 6px 0 12px; border: 1px solid var(--line-strong, #b9c3cf); border-radius: 999px; background: var(--surface, #fff); color: var(--ink, #17202b); font: 600 14px 'Hanken Grotesk', system-ui, sans-serif; cursor: pointer; } .ds-fchip:hover { border-color: var(--muted, #566475); } .ds-fchip[aria-pressed='true'] { background: var(--ink, #17202b); color: var(--bg, #f3f5f8); border-color: var(--ink, #17202b); } .ds-n { min-width: 26px; padding: 1px 8px; border-radius: 999px; text-align: center; font-size: 13px; font-weight: 700; background: var(--overdue, #b45309); color: #fff; } .ds-fchip:focus-visible { outline: 2px solid var(--focus, #1f5fa8); outline-offset: 2px; }"
+    },
+    {
+      "name": "Due Rail",
+      "kind": "custom",
+      "refersTo": "table-card",
+      "description": "Signature: a shared date axis with today in the middle and one mark per order; late marks are doubled.",
+      "html": "<svg class=\"ds-rail\" viewBox=\"0 0 184 30\" role=\"img\" aria-label=\"Due 2 days ago, Overdue\"><line class=\"a\" x1=\"12\" x2=\"172\" y1=\"15\" y2=\"15\"/><line class=\"a\" x1=\"12\" x2=\"12\" y1=\"12\" y2=\"18\"/><line class=\"a\" x1=\"52\" x2=\"52\" y1=\"12\" y2=\"18\"/><line class=\"a\" x1=\"92\" x2=\"92\" y1=\"12\" y2=\"18\"/><line class=\"a\" x1=\"132\" x2=\"132\" y1=\"12\" y2=\"18\"/><line class=\"a\" x1=\"172\" x2=\"172\" y1=\"12\" y2=\"18\"/><line class=\"t\" x1=\"92\" x2=\"92\" y1=\"4\" y2=\"26\"/><line class=\"m\" x1=\"69\" x2=\"69\" y1=\"6\" y2=\"24\"/><line class=\"m\" x1=\"73\" x2=\"73\" y1=\"6\" y2=\"24\"/></svg>",
+      "css": ".ds-rail { display: block; width: 168px; height: 30px; overflow: visible; } .ds-rail .a { stroke: var(--line-strong, #b9c3cf); stroke-width: 1; } .ds-rail .t { stroke: var(--muted, #566475); stroke-width: 1; stroke-dasharray: 2 3; } .ds-rail .m { stroke: var(--overdue, #b45309); stroke-width: 2; stroke-linecap: round; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "36px field, strong hairline, global accent focus ring.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search orders\">",
+      "css": ".ds-input { width: 240px; min-height: 36px; padding: 6px 10px; background: var(--surface, #fff); color: var(--ink, #17202b); border: 1px solid var(--line-strong, #b9c3cf); border-radius: 8px; font: 400 14px 'Hanken Grotesk', system-ui, sans-serif; } .ds-input:focus-visible { outline: 2px solid var(--focus, #1f5fa8); outline-offset: 2px; }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "button-default",
+      "description": "Left rail item with trailing count; current page gets a 14% accent tint.",
+      "html": "<nav class=\"ds-nav\"><button aria-current=\"page\">Orders <span>24</span></button><button>Ops queue <span>9</span></button></nav>",
+      "css": ".ds-nav { display: grid; gap: 2px; width: 188px; } .ds-nav button { display: flex; align-items: center; min-height: 38px; padding: 0 12px; background: none; border: 0; border-radius: 6px; color: var(--muted, #566475); font: 600 14px 'Hanken Grotesk', system-ui, sans-serif; text-align: left; cursor: pointer; } .ds-nav button span { margin-left: auto; } .ds-nav button:hover { background: var(--surface-2, #f7f8fa); color: var(--ink, #17202b); } .ds-nav button[aria-current='page'] { background: color-mix(in srgb, var(--accent, #1f5fa8) 14%, transparent); color: var(--accent, #1f5fa8); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Plate Reader",
+    "overview": "A laboratory plate in corporate dress. The ground is quiet and neutral (cool paper in light, graphite in dark), actions share one steel-blue accent, rules are hairlines, and a single grotesque with tabular numerals carries all text. Everything loud is reserved for delivery status, so a glance at the screen answers \"what is late\" before any word is read.\n\nThe one signature idea is the due rail: each order carries a thin vertical mark on a ruled date axis with today in the middle, so lateness reads as distance from the centre line, not as a label to decode. Layout and controls stay standard web components (a sidebar, a table, buttons, native dialogs); the rail and the status system are where the identity lives.",
+    "keyCharacteristics": [
+      "Neutral ground, one blue accent, five assigned status hues, each with its own shape and word.",
+      "Hairline borders and a single soft shadow; depth is mostly tonal.",
+      "One typeface (Hanken Grotesk), 14px base, tabular figures everywhere.",
+      "Light and dark themes share one semantic token set; only values change.",
+      "Dense but not tight: 36px controls, 8px radius, 10-14px cell padding."
+    ],
+    "rules": [
+      { "name": "The Red Means Urgent Rule", "body": "Red appears only for the urgent flag. Overdue is orange, errors are ink-bordered, destructive actions are bold with an ink border. If it is red, a person marked it urgent.", "section": "colors" },
+      { "name": "The Never Colour Alone Rule", "body": "Every status is colour plus shape plus word: chip = fill + icon + label; rail = mark geometry (double line, thick line, dashed line, dot, cross) + an aria-label; urgent = red + flag icon + \"Urgent\" text. Needs-date and cancelled differ from the others by outline and strike-through, not hue.", "section": "colors" },
+      { "name": "The Spend Colour On Status Rule", "body": "Chrome stays neutral and blue. A new saturated hue on a non-status element is a defect.", "section": "colors" },
+      { "name": "The One Face Rule", "body": "Hanken Grotesk only; rank with weight and the sizes above. No second family.", "section": "typography" },
+      { "name": "The One Shadow Rule", "body": "Use the shared --shadow token for lifted surfaces; only modal dialogs get the deeper one. No hard offset shadows.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the screen neutral and let status carry all saturated colour.",
+      "Do pair every status with an icon or shape and a word; give each rail mark its own geometry.",
+      "Do use the semantic tokens (--surface, --ink, --line-strong, status triplets); every new component must work in both themes.",
+      "Do use the 36px control height, 8px radius, 600 weight, and the global 2px accent focus ring.",
+      "Do keep tabular numerals on, and keep one primary button per view.",
+      "Do collapse tables to card rows at 860px with the same content and actions.",
+      "Do honour prefers-reduced-motion for any new animation (rail settle, toast pop and button transitions already do)."
+    ],
+    "donts": [
+      "Don't use red for anything but urgent (errors, destructive actions, overdue, cancel).",
+      "Don't signal status with colour alone, or with a pastel pill that has no icon or word.",
+      "Don't add a second typeface, or use size jumps where weight would do.",
+      "Don't introduce a new accent or decorative saturated hue.",
+      "Don't use hard offset shadows or heavy ambient shadows outside dialogs.",
+      "Don't hide data on mobile; rearrange it."
+    ]
+  }
+}
