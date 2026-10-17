@@ -161,3 +161,24 @@ test("the master outranks the BD sheet for delivered, in transit and cancelled",
   // An order the BD sheet already calls delivered stays delivered whatever the master says
   assert.equal(computeOrder(order({ ...base, opsDate: "15/10/2026" }), {}, TODAY, { status: "in_transit" }).status, "delivered");
 });
+
+test("every date the sheets hold is listed, in the order things happen", () => {
+  const o = computeOrder(order({ date: "02/10/2026", expected: "08/10/2026" }), {}, TODAY, {
+    status: "delivered",
+    estDispatch: "04-10-2026",
+    dispatchedOn: "05-10-2026",
+    deliveredOn: "07-10-2026",
+  });
+  assert.deepEqual(o.dates, [
+    { label: "Ordered", value: "2 Oct" },
+    { label: "Est. dispatch", value: "4 Oct" },
+    { label: "Dispatched", value: "5 Oct" },
+    { label: "Delivered", value: "7 Oct" },
+  ]);
+  // only the dates that exist are listed
+  const bare = computeOrder(order({ date: "02/10/2026" }), {}, TODAY);
+  assert.deepEqual(bare.dates, [{ label: "Ordered", value: "2 Oct" }]);
+  // the BD sheet's own ops delivery date wins over the master's
+  const both = computeOrder(order({ date: "02/10/2026", opsDate: "06/10/2026" }), {}, TODAY, { deliveredOn: "07-10-2026" });
+  assert.equal(both.dates.at(-1).value, "6 Oct");
+});

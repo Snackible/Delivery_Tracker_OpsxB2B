@@ -30,7 +30,7 @@
 
   --shadow: 0 1px 2px rgb(23 32 43 / 0.06), 0 2px 8px rgb(23 32 43 / 0.05);
   --radius: 8px;
-  --side: 216px;
+  --side: 204px;
   color-scheme: light;
 }
 
@@ -170,7 +170,7 @@ label.inline { display: flex; align-items: center; gap: 8px; margin: 0; font-wei
 .who .muted { font-size: 12px; text-transform: capitalize; }
 .mobile-bar, .tabbar { display: none; }
 
-.view { padding: 24px 28px 48px; min-width: 0; outline: none; }
+.view { padding: 24px 24px 48px; min-width: 0; outline: none; }
 .page-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .page-head h1 { font-size: 22px; letter-spacing: -0.01em; margin-right: auto; }
 .page-head .sub { color: var(--muted); font-weight: 500; font-size: 13px; }
@@ -335,7 +335,7 @@ a.btn { text-decoration: none; }
 .stage-sel { width: auto; min-width: 130px; min-height: 32px; }
 
 /* ---------- narrower screens: the sidebar becomes a top bar and bottom tabs ---------- */
-@media (max-width: 1180px) {
+@media (max-width: 1260px) {
   .shell { grid-template-columns: 1fr; }
   .side { display: none; }
   .mobile-bar {
@@ -473,3 +473,21 @@ tr.flash td { animation: flash 1.4s ease-out 2; }
 .toast.alert { font-size: 16px; padding: 14px 18px; max-width: 420px; border: 2px solid var(--urgent); animation: pop 0.25s cubic-bezier(0.16, 1, 0.3, 1), shake 0.5s 0.25s 2; }
 @keyframes shake { 0%, 100% { transform: none; } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 @media (prefers-reduced-motion: reduce) { .toast.alert { animation: none; } }
+
+/* every date the sheets hold, under the due date */
+.due-main { font-weight: 700; }
+.dates { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 1px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.dates li { display: flex; justify-content: space-between; gap: 10px; }
+.dates li span { color: var(--muted); opacity: 0.85; }
+@media (max-width: 860px) {
+  td.c-due small { display: inline; }
+  td.c-due .dates { grid-template-columns: repeat(2, auto); column-gap: 14px; justify-content: start; }
+}
+
+/* keep the whole row, actions included, inside the table at laptop widths */
+@media (min-width: 861px) {
+  .rail-cell { width: 140px; min-width: 128px; }
+  td, th { padding-inline: 10px; }
+  .client b, .client small { max-width: 24ch; }
+  .dates li { gap: 8px; }
+}

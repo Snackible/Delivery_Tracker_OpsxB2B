@@ -22,9 +22,11 @@ Open http://localhost:3000. With no Google credentials it runs on bundled demo d
 
 **Potential orders** (`Sheet2`): Date, Snackible POC, Lead Ref, Client Name, Hampers / Loose Products, Product List, Expected Delivery date, Stage, Follow-up Date, Converted Ref No. The header row is created for you if the tab is empty.
 
+Each order row shows its dates under the due date: ordered (BD sheet), estimated dispatch and dispatched (master), and delivered (the ops delivery date, else the master's actual delivery date).
+
 **Operations master** (`New B2B 2026`, tab `2026`, set by `SHEET_ID_MASTER`): the tracker matches each order to it by Ref No and reads its `STATUS`, `Act Del` (actual delivery date), `Courier` and `AWB` columns. Delivered, In-Transit, Cancelled, Hold, RTO, Expired and Internal PO there win over the BD sheet (hover a status to see it came from the master). Pending rows fall back to the BD sheet's dates, and Duplicate rows are skipped. **It is read only: nothing in the app can write to it.** If it cannot be read, a banner says so and the dashboard falls back to the BD sheet.
 
-**Users sheet**: username, password, role (`ops`, `b2b` or `admin`), account_id, display_name, Email, Contact. `display_name` should match the Snackible POC name for "My orders". `Contact` is a WhatsApp number with country code.
+**Users sheet**: username, password, role (`ops`, `b2b` or `admin`), account_id, display_name, Email, Contact. `display_name` should match the Snackible POC name for "My orders". `Contact` is a WhatsApp number with country code. A row with **no password** (or no username) is a contact only: its email and WhatsApp number are used for reminders if its role is `ops`, but it can never sign in.
 
 **Tab the app creates** in the orders spreadsheet: `Tracker_Meta` (urgent flags and ops notes). No logs are kept.
 
@@ -56,7 +58,7 @@ Expected dates may be `dd/mm/yy`, `17th October` and similar. **Asap is due on t
 ## Reminders
 
 - **Urgent alert:** the moment BD flags an order urgent (not when it is already urgent, or turned off) ops get an email about that order through the mail script, and the dashboard says whether it went out. A problem sending never blocks the flag.
-- **Sound alerts:** the dashboard checks for changes every 30 seconds, also in a background tab, and plays a short tone with a notice when an order is newly urgent (three high beeps) or newly overdue (a two-note drop). There is no setting for it: it is always on. Tones come from the browser, no files, and browsers only allow sound after a first click on the page.
+- **Sound alerts:** the dashboard checks for changes every 30 seconds, also in a background tab. A newly urgent order sounds a siren and a newly overdue one a klaxon, for everyone. **On the BD side, a rising chime plays whenever an order's status is updated** (ops marks it in transit or delivered, or the master sheet changes it), with a notice naming the order and its new status; changes you make yourself don't ring. There is no setting for it: it is always on. Tones come from the browser, no files, and browsers only allow sound after a first click on the page.
 - **Manual** (BD, to ops only): the **Remind** button on an order reminds ops about **that one order**, with no checkboxes. Recipients are always the ops users from the users sheet (or a one-off email or number under **Send to someone else**). **Email opens as a draft in your own Gmail** and **WhatsApp as a chat**; you press Send in each, so it comes from you, and both buttons sit ready in the dialog. If an ops user has no email or number, **Add email / Add number** saves it to the users sheet for next time. Nothing is sent by the server and nothing is logged.
 - **Resend daily email** (master senders only, the top button): sends the daily email to ops again on demand, after a confirm dialog that shows who gets it.
 - **Remind ops about several orders** (master senders only, the top button): the same dialog with order checkboxes (urgent and late are ticked, plus quick picks for all open orders), and, when the mail script is set up, **Send full list now**.

@@ -136,6 +136,10 @@ function chime(kind) {
     for (let i = 0; i < 8; i++) tone(i % 2 ? 740 : 988, i * 0.38, 0.36, 0.8);
   } else if (kind === "late") {
     for (let i = 0; i < 3; i++) tone(i === 2 ? 330 : 440, i * 0.5, 0.42, 0.7, "square");
+  } else if (kind === "update") {
+    // Rising three-note chime, one beat louder than a notification: "something moved".
+    [523, 659, 784].forEach((f, i) => tone(f, i * 0.16, 0.2, 0.65, "triangle"));
+    tone(1047, 0.5, 0.45, 0.65, "triangle");
   } else {
     tone(784, 0, 0.18, 0.4, "triangle");
   }
@@ -240,12 +244,24 @@ function go(view) {
 // ---------- data ----------
 
 /** Orders that are newly urgent or newly overdue since the last load (never on the first load). */
+// A status someone (or the master sheet) set, as opposed to Overdue / Due today / Upcoming, which just follow the date.
+const SET_BY_SOMEONE = new Set(["in_transit", "delivered", "cancelled", "hold", "rto", "expired", "internal_po"]);
+
 function alertOnChanges(orders, announce) {
+  const statusOf = new Map(orders.map((o) => [o.ref, o.status]));
   const urgent = new Set(orders.filter((o) => o.urgent).map((o) => o.ref));
   const late = new Set(orders.filter((o) => o.late).map((o) => o.ref));
   if (S.seen && announce) {
     const newUrgent = [...urgent].filter((r) => !S.seen.urgent.has(r));
     const newLate = [...late].filter((r) => !S.seen.late.has(r));
+    // BD side: hear it when an order's status is updated (ops marks it, or the master sheet changes).
+    const changed = isBD()
+      ? orders.filter((o) => S.seen.status.has(o.ref) && S.seen.status.get(o.ref) !== o.status && (SET_BY_SOMEONE.has(o.status) || SET_BY_SOMEONE.has(S.seen.status.get(o.ref))))
+      : [];
+    const say = (list) =>
+      list.length <= 3
+        ? list.map((o) => `${o.ref} is now: ${o.label}`).join(" · ")
+        : `${list.length} orders had their status updated`;
     if (newUrgent.length) {
       S.flash = new Set(newUrgent);
       setTimeout(() => (S.flash = null), 4000);
@@ -256,9 +272,12 @@ function alertOnChanges(orders, announce) {
       chime("late");
       flashTitle("⚠️ Order overdue");
       toast(newLate.length === 1 ? `${newLate[0]} is now overdue` : `${newLate.length} orders are now overdue`, false, true);
+    } else if (changed.length) {
+      chime("update");
     }
+    if (changed.length) toast(say(changed), false, true); // the notice is shown even when a louder alert played
   }
-  S.seen = { urgent, late };
+  S.seen = { urgent, late, status: statusOf };
 }
 
 async function loadOrders(silent = false, announce = false) {
@@ -370,6 +389,12 @@ function actionsFor(o) {
   return h + "</div>";
 }
 
+/** The dates the sheets hold for an order: ordered, estimated dispatch, dispatched, delivered. */
+function datesHtml(o) {
+  if (!o.dates?.length) return "";
+  return `<ul class="dates">${o.dates.map((d) => `<li><span>${esc(d.label)}</span>${esc(d.value)}</li>`).join("")}</ul>`;
+}
+
 function rowHtml(o, i) {
   const done = CLOSED.has(o.status);
   const cls = [o.urgent ? "is-urgent" : "", done ? "is-done" : "", S.flash?.has(o.ref) ? "flash" : ""].filter(Boolean).join(" ");
@@ -377,7 +402,7 @@ function rowHtml(o, i) {
   return `<tr class="${cls}" data-ref="${esc(o.ref)}">
     <td class="c-ref"><span class="ref">${esc(o.ref)}</span>${o.urgent ? `<span class="tag-urgent">${icon("flag")}Urgent</span>` : ""}</td>
     <td class="c-client client"><b title="${esc(o.client)}">${esc(o.client)}</b>${sub ? `<small title="${sub}">${sub}</small>` : ""}${o.opsNote ? `<small>Ops note: ${esc(o.opsNote)}</small>` : ""}</td>
-    <td class="c-due due">${o.dueLabel ? esc(o.dueLabel) : "—"}${o.dueFromAsap ? "<small>Asap</small>" : ""}</td>
+    <td class="c-due due"><span class="due-main">${o.dueLabel ? esc(o.dueLabel) : "—"}</span>${o.dueFromAsap ? "<small>Asap</small>" : ""}${datesHtml(o)}</td>
     <td class="c-rail rail-cell">${railSvg(o, i)}</td>
     <td class="c-status">${chip(o)}</td>
     <td class="actions">${actionsFor(o)}</td>
@@ -387,7 +412,7 @@ function rowHtml(o, i) {
 function ordersTable(list, emptyTitle, emptyText) {
   if (!list.length) return `<div class="table-wrap"><div class="empty">${icon("check", "i big")}<strong>${esc(emptyTitle)}</strong>${esc(emptyText)}</div></div>`;
   return `<div class="table-wrap"><table>
-    <thead><tr><th scope="col">Order</th><th scope="col">Client and owner</th><th scope="col">Due</th><th scope="col" class="rail-cell rail-head">${railHead()}</th><th scope="col">Status</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
+    <thead><tr><th scope="col">Order</th><th scope="col">Client and owner</th><th scope="col">Due and dates</th><th scope="col" class="rail-cell rail-head">${railHead()}</th><th scope="col">Status</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
     <tbody>${list.map(rowHtml).join("")}</tbody></table></div>`;
 }
 
