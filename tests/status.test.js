@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { parseDate, parseExpected, formatDMY, dayDiff } from "../lib/dates.js";
 import { computeOrder, compareOrders, summarize, OPEN_STATES } from "../lib/status.js";
+import { buildDigest } from "../lib/reminders.js";
 import { demoOrders } from "../data/demo-orders.js";
 import { masterStatusOf, masterDetail } from "../lib/store.js";
 
@@ -181,4 +182,50 @@ test("every date the sheets hold is listed, in the order things happen", () => {
   // the BD sheet's own ops delivery date wins over the master's
   const both = computeOrder(order({ date: "02/10/2026", opsDate: "06/10/2026" }), {}, TODAY, { deliveredOn: "07-10-2026" });
   assert.equal(both.dates.at(-1).value, "6 Oct");
+});
+
+test("no delivery date: an extra line when the estimated dispatch is close or passed, and only then can it be reminded", () => {
+  const noDeadline = order({ date: "02/10/2026", expected: "" });
+  const passed = computeOrder(noDeadline, {}, TODAY, { estDispatch: "04-10-2026" });
+  assert.equal(passed.dispatchNote, "Est. dispatch 4 Oct has passed (12 days ago) and no delivery date is written");
+  assert.equal(passed.remindable, true);
+  assert.equal(passed.estDelta, -12);
+
+  const soon = computeOrder(noDeadline, {}, TODAY, { estDispatch: "18-10-2026" });
+  assert.equal(soon.dispatchNote, "Est. dispatch 18 Oct is in 2 days and no delivery date is written");
+  assert.equal(soon.remindable, true);
+  assert.equal(computeOrder(noDeadline, {}, TODAY, { estDispatch: "16-10-2026" }).dispatchNote, "Est. dispatch is today and no delivery date is written");
+
+  // not close, not known, or not in the master: left alone
+  for (const master of [{ estDispatch: "19-10-2026" }, { estDispatch: "30-10-2026" }, { estDispatch: "" }, undefined]) {
+    const o = computeOrder(noDeadline, {}, TODAY, master);
+    assert.equal(o.remindable, false, JSON.stringify(master));
+    assert.equal(o.dispatchNote, "");
+  }
+  // BD flagging it urgent is a deliberate ask, so it can be reminded
+  assert.equal(computeOrder(noDeadline, { urgent: true }, TODAY).remindable, true);
+  // a written delivery date makes it a normal order
+  const dated = computeOrder(order({ date: "02/10/2026", expected: "30/10/2026" }), {}, TODAY, { estDispatch: "04-10-2026" });
+  assert.equal(dated.remindable, true);
+  assert.equal(dated.dispatchNote, "");
+  // finished or parked orders are never remindable
+  assert.equal(computeOrder(noDeadline, {}, TODAY, { status: "delivered", estDispatch: "04-10-2026" }).remindable, false);
+  assert.equal(computeOrder(noDeadline, {}, TODAY, { status: "in_transit", estDispatch: "04-10-2026" }).dispatchNote, "");
+});
+
+test("the daily email leaves out no-date orders with no close estimate, and lists the rest most overdue first", () => {
+  const mk = (ref, est) => computeOrder(order({ ref, date: "02/10/2026" }), {}, TODAY, est ? { estDispatch: est } : undefined);
+  const b = mk("REF-B", "04-10-2026"); // 12 days past
+  const a = mk("REF-A", "10-10-2026"); // 6 days past
+  const soon = mk("REF-SOON", "17-10-2026"); // tomorrow
+  const far = mk("REF-FAR", "30-10-2026");
+  const none = mk("REF-NONE", "");
+  const d = buildDigest([none, far, soon, a, b]);
+  assert.ok(d.text.includes("Est. dispatch 4 Oct has passed (12 days ago)"));
+  assert.ok(d.html.includes("Est. dispatch 4 Oct has passed"));
+  assert.ok(!d.text.includes("REF-FAR") && !d.text.includes("REF-NONE"), "far and unknown estimates are not in the email");
+  const at = (ref) => d.text.indexOf(ref);
+  assert.ok(at("REF-B") > -1 && at("REF-B") < at("REF-A") && at("REF-A") < at("REF-SOON"));
+  // with only far or unknown estimates there is nothing to send
+  assert.equal(buildDigest([far, none]), null);
 });

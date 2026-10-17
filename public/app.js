@@ -375,7 +375,8 @@ function actionsFor(o) {
     const dateLabel = needsDate ? "Set expected date" : "Change expected date";
     h += `<button class="btn small${needsDate ? " attn" : ""}" type="button" data-act="date" title="${dateLabel}" aria-label="${dateLabel} for ${esc(o.ref)}"><span class="lbl">${needsDate ? "Set date" : "Date"}</span></button>`;
     h += `<button class="icon-btn" type="button" data-act="urgent" aria-pressed="${o.urgent}" aria-label="${o.urgent ? "Remove urgent flag" : "Mark urgent"}" title="${o.urgent ? "Remove urgent flag" : "Mark urgent"}">${icon("flag")}</button>`;
-    h += `<button class="btn small" type="button" data-act="remind" title="Remind ops" aria-label="Remind ops about ${esc(o.ref)}">${icon("bell")}<span class="lbl">Remind</span></button>`;
+    const why = "Can't remind yet: no delivery date is written and the estimated dispatch is not within 2 days";
+    h += `<button class="btn small" type="button" data-act="remind" ${o.remindable ? `title="Remind ops" aria-label="Remind ops about ${esc(o.ref)}"` : `disabled title="${why}" aria-label="${why}"`}>${icon("bell")}<span class="lbl">Remind</span></button>`;
     h += `<details class="menu"><summary class="icon-btn" aria-label="More actions" title="More actions">${icon("more")}</summary><div class="menu-list">
       ${o.status !== "in_transit" ? `<button type="button" data-act="transit">${icon("truck")}Mark in transit</button>` : ""}
       <button type="button" data-act="delivered">${icon("check")}Mark delivered</button>
@@ -772,7 +773,7 @@ async function openRemind(preRefs) {
   await guard(async () => {
     S.recipients = (await api("recipients")).recipients;
     const multi = !preRefs;
-    const open = S.orders.filter((o) => OPEN.has(o.status));
+    const open = S.orders.filter((o) => OPEN.has(o.status) && o.remindable);
     const one = multi ? null : orderByRef(preRefs[0]);
     if (!multi && !one) throw new Error("That order is not in the list any more. Refresh and try again.");
     const canSendNow = multi ? (await api("remind-all").catch(() => ({ canSendNow: false }))).canSendNow : false;
