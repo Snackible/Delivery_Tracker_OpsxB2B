@@ -22,6 +22,9 @@
   --today: #f2b01e;        --today-ink: #1b1300;   --today-bg: #fdf3d6;   --today-mark: #a16207;
   --upcoming: #1e7b4f;     --upcoming-ink: #ffffff;--upcoming-bg: #e3f4ea;
   --needs: #5b6777;        --needs-ink: #ffffff;   --needs-bg: #eceff3;
+  --transit: #0e7490;      --transit-ink: #ffffff;
+  --hold: #7b4fbf;         --hold-ink: #ffffff;
+  --rto: #b5446e;          --rto-ink: #ffffff;
   --delivered: #3f6a99;    --delivered-ink: #ffffff;
   --cancelled: #6b7280;    --cancelled-ink: #ffffff;
 
@@ -49,6 +52,9 @@
   --today: #f5c451;    --today-ink: #1b1300;   --today-bg: #342c17;   --today-mark: #f5c451;
   --upcoming: #4cc38a; --upcoming-ink: #04170f;--upcoming-bg: #17301f;
   --needs: #8d99a8;    --needs-ink: #0e1217;   --needs-bg: #242b34;
+  --transit: #5cc8e6;  --transit-ink: #04161d;
+  --hold: #b79cf0;     --hold-ink: #170b2e;
+  --rto: #f08cb2;      --rto-ink: #2b0a17;
   --delivered: #7ba3cf;--delivered-ink: #07121e;
   --cancelled: #8b93a1;--cancelled-ink: #12161b;
 
@@ -185,6 +191,9 @@ label.inline { display: flex; align-items: center; gap: 8px; margin: 0; font-wei
 .fchip .n.s-overdue { background: var(--overdue); color: var(--overdue-ink); }
 .fchip .n.s-today { background: var(--today); color: var(--today-ink); }
 .fchip .n.s-urgent { background: var(--urgent); color: var(--urgent-ink); }
+.fchip .n.s-in_transit { background: var(--transit); color: var(--transit-ink); }
+.fchip .n.s-hold { background: var(--hold); color: var(--hold-ink); }
+.fchip .n.s-rto { background: var(--rto); color: var(--rto-ink); }
 .fchip .n.s-upcoming { background: var(--upcoming); color: var(--upcoming-ink); }
 .fchip .n.s-needs_date { background: var(--needs); color: var(--needs-ink); }
 .fchip .n.zero { background: var(--needs-bg); color: var(--muted); }
@@ -230,6 +239,12 @@ tr.is-done td:not(.actions) { color: var(--muted); }
 .chip.s-today { background: var(--today); color: var(--today-ink); }
 .chip.s-upcoming { background: var(--upcoming); color: var(--upcoming-ink); }
 .chip.s-needs_date { background: transparent; color: var(--needs); border: 1.5px dashed var(--needs); }
+.chip.s-in_transit { background: var(--transit); color: var(--transit-ink); }
+.chip.s-in_transit.late { background: var(--overdue); color: var(--overdue-ink); }
+.chip.s-hold { background: var(--hold); color: var(--hold-ink); }
+.chip.s-rto { background: var(--rto); color: var(--rto-ink); }
+.chip.s-expired { background: transparent; color: var(--cancelled); border: 1.5px solid var(--cancelled); }
+.chip.s-internal_po { background: var(--needs-bg); color: var(--ink); border: 1.5px solid var(--line-strong); }
 .chip.s-delivered { background: var(--delivered); color: var(--delivered-ink); }
 .chip.s-cancelled { background: var(--cancelled); color: var(--cancelled-ink); text-decoration: line-through; }
 tr.is-urgent .chip.s-overdue, tr.is-urgent .chip.s-today, tr.is-urgent .chip.s-upcoming { box-shadow: 0 0 0 2px var(--urgent-bg), 0 0 0 3.5px var(--urgent); }
@@ -244,6 +259,10 @@ tr.is-urgent .chip.s-overdue, tr.is-urgent .chip.s-today, tr.is-urgent .chip.s-u
 .rail-svg .mk.s-overdue { stroke: var(--overdue); }
 .rail-svg .mk.s-today { stroke: var(--today-mark); stroke-width: 3; }
 .rail-svg .mk.s-upcoming { stroke: var(--upcoming); }
+.rail-svg .mk.s-hold { stroke: var(--hold); stroke-width: 3; stroke-dasharray: 3 3; }
+.rail-svg .mk.s-rto, .rail-svg .mk.s-expired, .rail-svg .mk.s-internal_po { stroke: var(--muted); stroke-width: 1.5; opacity: 0.7; }
+.rail-svg .mk.s-in_transit { stroke: var(--transit); stroke-width: 3; }
+.rail-svg .mk.s-in_transit.late { stroke: var(--overdue); }
 .rail-svg .mk.s-needs_date { stroke: var(--needs); stroke-dasharray: 3 3; }
 .rail-svg .mk.s-delivered, .rail-svg .mk.s-cancelled { stroke: var(--delivered); stroke-width: 1.5; opacity: 0.7; }
 .rail-svg .mk.urgent { stroke: var(--urgent); }
@@ -417,6 +436,8 @@ a.btn { text-decoration: none; }
 .strip .s-overdue { background: var(--overdue); }
 .strip .s-today { background: var(--today); }
 .strip .s-upcoming { background: var(--upcoming); }
+.strip .s-in_transit { background: var(--transit); }
+.strip .s-hold { background: var(--hold); }
 .strip .s-needs_date { background: repeating-linear-gradient(135deg, var(--needs) 0 4px, transparent 4px 8px); box-shadow: inset 0 0 0 1.5px var(--needs); }
 .strip .s-urgent { background: var(--urgent); }
 .strip-legend { display: flex; gap: 6px 16px; flex-wrap: wrap; margin-bottom: 14px; font-size: 13px; color: var(--muted); }

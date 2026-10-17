@@ -4,8 +4,9 @@ const $ = (sel, el = document) => el.querySelector(sel);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const icon = (n, cls = "i") => `<svg class="${cls}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 
-const OPEN = new Set(["overdue", "today", "upcoming", "needs_date"]);
-const STATUS_ICON = { overdue: "alert", today: "clock", upcoming: "next", needs_date: "dash", delivered: "check", cancelled: "x" };
+const OPEN = new Set(["overdue", "today", "upcoming", "needs_date", "in_transit"]);
+const CLOSED = new Set(["delivered", "cancelled", "rto", "expired", "internal_po"]);
+const STATUS_ICON = { overdue: "alert", today: "clock", upcoming: "next", needs_date: "dash", delivered: "check", cancelled: "x", in_transit: "truck", hold: "pause", rto: "undo", expired: "clock", internal_po: "note" };
 
 const S = {
   me: null,
@@ -241,7 +242,7 @@ function go(view) {
 /** Orders that are newly urgent or newly overdue since the last load (never on the first load). */
 function alertOnChanges(orders, announce) {
   const urgent = new Set(orders.filter((o) => o.urgent).map((o) => o.ref));
-  const late = new Set(orders.filter((o) => o.status === "overdue").map((o) => o.ref));
+  const late = new Set(orders.filter((o) => o.late).map((o) => o.ref));
   if (S.seen && announce) {
     const newUrgent = [...urgent].filter((r) => !S.seen.urgent.has(r));
     const newLate = [...late].filter((r) => !S.seen.late.has(r));
@@ -265,6 +266,7 @@ async function loadOrders(silent = false, announce = false) {
   alertOnChanges(data.orders, announce);
   S.orders = data.orders;
   S.mode = data.mode;
+  S.master = data.master || null;
   S.loaded = true;
   paintCounts();
 }
@@ -304,12 +306,12 @@ function railHead() {
 function railSvg(o, i) {
   const ticks = [-14, -7, 0, 7, 14].map((d) => `<line class="tick" x1="${rx(d)}" x2="${rx(d)}" y1="12" y2="18"/>`).join("");
   const urgent = o.urgent ? " urgent" : "";
-  const cls = `mk s-${o.status}${urgent}`;
+  const cls = `mk s-${o.status}${o.late ? " late" : ""}${urgent}`;
   let mark = "";
   const d = o.daysToDue;
   if (o.status === "needs_date") {
     mark = `<line class="${cls}" x1="${RW - 10}" x2="${RW - 10}" y1="6" y2="24"/>`;
-  } else if (d != null && (o.status === "delivered" || o.status === "cancelled")) {
+  } else if (d != null && CLOSED.has(o.status)) {
     const x = rx(d);
     mark = o.status === "cancelled"
       ? `<path class="${cls}" d="M${x - 4} 11l8 8M${x + 4} 11l-8 8"/>`
@@ -317,7 +319,7 @@ function railSvg(o, i) {
   } else if (d != null) {
     const x = rx(d);
     const clipped = Math.abs(d) > 14;
-    if (o.status === "overdue") mark = `<line class="${cls}" x1="${x}" x2="${x}" y1="6" y2="24"/><line class="${cls}" x1="${x + 4}" x2="${x + 4}" y1="6" y2="24"/>`;
+    if (o.late) mark = `<line class="${cls}" x1="${x}" x2="${x}" y1="6" y2="24"/><line class="${cls}" x1="${x + 4}" x2="${x + 4}" y1="6" y2="24"/>`;
     else mark = `<line class="${cls}" x1="${x}" x2="${x}" y1="6" y2="24"/>`;
     if (clipped) mark += `<path class="${cls}" d="M${d < 0 ? x + 12 : x - 12} 11l${d < 0 ? -4 : 4} 4-${d < 0 ? 4 : -4} 4" transform="translate(${d < 0 ? -2 : 2} 0)"/>`;
   }
@@ -332,14 +334,17 @@ function railSvg(o, i) {
 const productLine = (o) => [o.kind, o.products].filter((v) => v && v !== "Mentioned in mail").join(" · ") || o.products || "";
 
 function chip(o) {
-  return `<span class="chip s-${o.status}">${icon(STATUS_ICON[o.status])}${esc(o.label)}</span>`;
+  return `<span class="chip s-${o.status}${o.late ? " late" : ""}"${o.fromMaster ? ' title="From the operations master sheet"' : ""}>${icon(STATUS_ICON[o.status])}${esc(o.label)}</span>`;
 }
 
 function actionsFor(o) {
-  const done = o.status === "delivered" || o.status === "cancelled";
+  const done = CLOSED.has(o.status);
   const bd = isBD();
   const ops = isOps();
   let h = '<div class="group">';
+  // Anything the master sheet decided cannot be undone from here (the master is read only), so no Reopen.
+  if (done && o.fromMaster) return h + "</div>";
+  if (o.status === "hold" && o.fromMaster) return h + "</div>";
   if (done) {
     if (bd || ops) h += `<button class="btn small" type="button" data-act="reopen">${icon("undo")}Reopen</button>`;
     return h + "</div>";
@@ -353,10 +358,12 @@ function actionsFor(o) {
     h += `<button class="icon-btn" type="button" data-act="urgent" aria-pressed="${o.urgent}" aria-label="${o.urgent ? "Remove urgent flag" : "Mark urgent"}" title="${o.urgent ? "Remove urgent flag" : "Mark urgent"}">${icon("flag")}</button>`;
     h += `<button class="btn small" type="button" data-act="remind" title="Remind ops" aria-label="Remind ops about ${esc(o.ref)}">${icon("bell")}<span class="lbl">Remind</span></button>`;
     h += `<details class="menu"><summary class="icon-btn" aria-label="More actions" title="More actions">${icon("more")}</summary><div class="menu-list">
+      ${o.status !== "in_transit" ? `<button type="button" data-act="transit">${icon("truck")}Mark in transit</button>` : ""}
       <button type="button" data-act="delivered">${icon("check")}Mark delivered</button>
       ${ops ? `<button type="button" data-act="note">${icon("note")}Ops note</button>` : ""}
       <button type="button" class="danger" data-act="cancel">${icon("x")}Cancel order</button></div></details>`;
   } else if (ops) {
+    if (o.status !== "in_transit") h += `<button class="btn small" type="button" data-act="transit">${icon("truck")}In transit</button>`;
     h += `<button class="btn small primary" type="button" data-act="delivered">${icon("check")}Mark delivered</button>`;
     h += `<button class="icon-btn" type="button" data-act="note" aria-label="Add a note" title="Add a note">${icon("note")}</button>`;
   }
@@ -364,9 +371,9 @@ function actionsFor(o) {
 }
 
 function rowHtml(o, i) {
-  const done = o.status === "delivered" || o.status === "cancelled";
+  const done = CLOSED.has(o.status);
   const cls = [o.urgent ? "is-urgent" : "", done ? "is-done" : "", S.flash?.has(o.ref) ? "flash" : ""].filter(Boolean).join(" ");
-  const sub = esc([o.poc, productLine(o)].filter(Boolean).join(" · "));
+  const sub = esc([o.poc, o.status === "in_transit" && o.shipment ? o.shipment : productLine(o)].filter(Boolean).join(" · "));
   return `<tr class="${cls}" data-ref="${esc(o.ref)}">
     <td class="c-ref"><span class="ref">${esc(o.ref)}</span>${o.urgent ? `<span class="tag-urgent">${icon("flag")}Urgent</span>` : ""}</td>
     <td class="c-client client"><b title="${esc(o.client)}">${esc(o.client)}</b>${sub ? `<small title="${sub}">${sub}</small>` : ""}${o.opsNote ? `<small>Ops note: ${esc(o.opsNote)}</small>` : ""}</td>
@@ -386,19 +393,28 @@ function ordersTable(list, emptyTitle, emptyText) {
 
 // ---------- views ----------
 
+const PENDING = new Set(["overdue", "today", "upcoming", "needs_date"]);
+// Every status the master sheet can have gets its own filter, even when it is empty today.
 const FILTERS = [
   { id: "open", label: "Open", test: (o) => OPEN.has(o.status), cls: "" },
-  { id: "overdue", label: "Overdue", test: (o) => o.status === "overdue", cls: "s-overdue" },
+  { id: "pending", label: "Pending", test: (o) => PENDING.has(o.status), cls: "" },
+  { id: "overdue", label: "Overdue", test: (o) => o.late, cls: "s-overdue" },
   { id: "today", label: "Due today", test: (o) => o.status === "today", cls: "s-today" },
   { id: "urgent", label: "Urgent", test: (o) => o.urgent, cls: "s-urgent" },
+  { id: "in_transit", label: "In transit", test: (o) => o.status === "in_transit", cls: "s-in_transit" },
   { id: "needs_date", label: "Needs date", test: (o) => o.status === "needs_date", cls: "s-needs_date" },
   { id: "upcoming", label: "Upcoming", test: (o) => o.status === "upcoming", cls: "s-upcoming" },
+  { id: "hold", label: "On hold", test: (o) => o.status === "hold", cls: "s-hold" },
   { id: "delivered", label: "Delivered", test: (o) => o.status === "delivered", cls: "" },
+  { id: "rto", label: "Returned (RTO)", test: (o) => o.status === "rto", cls: "s-rto" },
+  { id: "cancelled", label: "Cancelled", test: (o) => o.status === "cancelled", cls: "" },
+  { id: "expired", label: "Expired", test: (o) => o.status === "expired", cls: "" },
+  { id: "internal_po", label: "Internal PO", test: (o) => o.status === "internal_po", cls: "" },
   { id: "all", label: "All", test: () => true, cls: "" },
 ];
 
 function queueOrders() {
-  return S.orders.filter((o) => OPEN.has(o.status) && o.status !== "needs_date" && (o.urgent || o.status === "overdue" || o.status === "today" || (o.status === "upcoming" && o.daysToDue <= 3)));
+  return S.orders.filter((o) => OPEN.has(o.status) && o.status !== "needs_date" && (o.urgent || o.late || o.status === "today" || o.status === "in_transit" || (o.status === "upcoming" && o.daysToDue <= 3)));
 }
 
 function matchesSearch(o) {
@@ -443,6 +459,8 @@ function statusStrip() {
   const parts = [
     ["overdue", "Overdue", open.filter((o) => o.status === "overdue").length],
     ["today", "Due today", open.filter((o) => o.status === "today").length],
+    ["in_transit", "In transit", open.filter((o) => o.status === "in_transit").length],
+    ["hold", "On hold", S.orders.filter((o) => o.status === "hold").length],
     ["upcoming", "Upcoming", open.filter((o) => o.status === "upcoming").length],
     ["needs_date", "Needs date", open.filter((o) => o.status === "needs_date").length],
   ].filter(([, , n]) => n);
@@ -459,6 +477,9 @@ function head(title, sub) {
 }
 
 function demoBanner() {
+  if (S.master?.configured && !S.master.connected) {
+    return `<div class="banner">${icon("alert")}<span>The operations master sheet could not be read, so delivery status is coming from the BD sheet only. ${esc(S.master.error)}</span></div>`;
+  }
   if (S.mode !== "demo") return "";
   return `<div class="banner">${icon("alert")}<span>Demo data. Edits are kept in memory only. Add Google credentials in <b>.env</b> to use the real sheet.</span></div>`;
 }
@@ -601,6 +622,7 @@ const handlers = {
     body: `<p>${esc(orderByRef(ref)?.client || "")}</p><p class="muted" style="margin-top:8px">Cancelled orders stop all reminders. You can reopen it later.</p>`,
     buttons: [{ label: "Keep order" }, { label: "Cancel order", kind: "danger", run: async () => { await orderAction(ref, "cancel"); await afterEdit(`${ref} cancelled`); } }],
   }),
+  transit: (ref) => guard(async () => { await orderAction(ref, "transit"); await afterEdit(`${ref} marked in transit`); }),
   reopen: (ref) => guard(async () => { await orderAction(ref, "reopen"); await afterEdit(`${ref} reopened`); }),
   note: (ref) => {
     const o = orderByRef(ref);

@@ -103,6 +103,8 @@ byRef["Oct26-465"].expected = "Asap";
 byRef["Oct26-354"].expected = "12/10/2026";
 byRef["Oct26-409"].expected = "21/10/2026";
 byRef["Oct26-559"].expected = "10/10/2026";
+byRef["Oct26-354"].status = "In transit"; // 4 days past its date, still on its way
+byRef["Oct26-536"].status = "In transit";
 byRef["Oct26-571"].expected = "17th October";
 
 export const demoMeta = { "Oct26-559": { urgent: true, opsNote: "" } };

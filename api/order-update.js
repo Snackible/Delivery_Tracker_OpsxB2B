@@ -4,7 +4,7 @@ import { notifyUrgent } from "../lib/reminders.js";
 import { parseDate, formatDMY, todayIST } from "../lib/dates.js";
 
 // One route for every order edit. Role rules (PLAN.md section 7):
-//   b2b: expectedDate, urgent, cancel, reopen     ops: delivered, note     admin: everything
+//   b2b: expectedDate, urgent, cancel, reopen     ops: in transit, delivered, note     admin: everything
 const BD = ["b2b", "admin"];
 const OPS = ["ops", "admin"];
 
@@ -41,6 +41,11 @@ export default route({ methods: ["POST"] }, async ({ body, user, me }) => {
       const date = body.date ? parseDate(body.date) : todayIST();
       if (!date) throw httpError(400, "Enter a valid delivery date.");
       await updateOrder(ref, { opsDate: formatDMY(date), status: "Delivered" });
+      return { ok: true };
+    }
+    case "transit": {
+      need(OPS.concat(BD));
+      await updateOrder(ref, { status: "In transit" });
       return { ok: true };
     }
     case "cancel": {

@@ -22,6 +22,8 @@ Open http://localhost:3000. With no Google credentials it runs on bundled demo d
 
 **Potential orders** (`Sheet2`): Date, Snackible POC, Lead Ref, Client Name, Hampers / Loose Products, Product List, Expected Delivery date, Stage, Follow-up Date, Converted Ref No. The header row is created for you if the tab is empty.
 
+**Operations master** (`New B2B 2026`, tab `2026`, set by `SHEET_ID_MASTER`): the tracker matches each order to it by Ref No and reads its `STATUS`, `Act Del` (actual delivery date), `Courier` and `AWB` columns. Delivered, In-Transit, Cancelled, Hold, RTO, Expired and Internal PO there win over the BD sheet (hover a status to see it came from the master). Pending rows fall back to the BD sheet's dates, and Duplicate rows are skipped. **It is read only: nothing in the app can write to it.** If it cannot be read, a banner says so and the dashboard falls back to the BD sheet.
+
 **Users sheet**: username, password, role (`ops`, `b2b` or `admin`), account_id, display_name, Email, Contact. `display_name` should match the Snackible POC name for "My orders". `Contact` is a WhatsApp number with country code.
 
 **Tab the app creates** in the orders spreadsheet: `Tracker_Meta` (urgent flags and ops notes). No logs are kept.
@@ -34,10 +36,14 @@ The master password is the password of the user whose role is `master-admin` in 
 
 | Status | Rule |
 |---|---|
-| Cancelled | Delivery Status says Cancelled. No reminders. |
-| Delivered | Delivery Status says Delivered or Done, or an Operations Delivery Date is set. No reminders. |
-| Overdue / Due today / Upcoming | By expected date against today (India time). |
-| Needs date | No usable expected date. |
+| Cancelled | Delivery Status says Cancelled, or the master sheet does. No reminders. |
+| Delivered | Delivery Status says Delivered or Done, an Operations Delivery Date is set, or the master sheet says Delivered (with its actual delivery date). No reminders. |
+| In transit | Delivery Status says In transit, or the master sheet says In-Transit (with courier and AWB). Still counts as late if past its due date. |
+| On hold | The master sheet says Hold. Parked: no reminders. |
+| Returned (RTO) | The master sheet says RTO, RTO in transit or RTO delivered. Finished: no reminders. |
+| Expired / Internal PO | The master sheet says Expired or Internal PO. No reminders. |
+| Overdue / Due today / Upcoming | Pending orders, by expected date against today (India time). |
+| Needs date | Pending, with no usable expected date. |
 
 Expected dates may be `dd/mm/yy`, `17th October` and similar. **Asap is due on the order date**, so it is late the next day. Urgent is a BD-only on/off flag shown in red and sorted first.
 
