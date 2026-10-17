@@ -491,3 +491,9 @@ tr.flash td { animation: flash 1.4s ease-out 2; }
   .client b, .client small { max-width: 24ch; }
   .dates li { gap: 8px; }
 }
+
+/* version: release number and commit, small and quiet but always findable */
+.ver { margin: 0; font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; letter-spacing: 0.01em; }
+.side-foot .ver { padding: 0 12px; }
+.ver-login { text-align: center; margin-top: 14px; }
+.mobile-bar .brand small[data-version] { letter-spacing: 0.02em; text-transform: none; }

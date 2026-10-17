@@ -4,6 +4,10 @@ A two-sided dashboard over the BD Ops Sales Tracking Sheet. **BD** sees which or
 
 Design and decisions: [PLAN.md](PLAN.md), [PRODUCT.md](PRODUCT.md), [DESIGN.md](DESIGN.md).
 
+## Version
+
+The sign-in page, the sidebar footer and the phone header show something like **v1.1.0 · dd9371c**: the release number (`version` in `package.json`, bumped with each push) and the short commit hash that is actually running. After a push, compare the hash with `git log --oneline -1` to tell at a glance whether the live site has caught up. On Vercel the hash comes from `VERCEL_GIT_COMMIT_SHA`, which Vercel provides when "Automatically expose System Environment Variables" is on (the default); preview deployments also show their environment name.
+
 ## Run it locally
 
 ```

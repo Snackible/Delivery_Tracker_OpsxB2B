@@ -1,6 +1,6 @@
 {
   "name": "delivery-tracker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "B2B x Ops delivery tracker over the BD Ops Sales Tracking Sheet",
   "type": "module",

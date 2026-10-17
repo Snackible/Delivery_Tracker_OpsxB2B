@@ -176,6 +176,15 @@ async function probeRegister() {
   }
 }
 
+function paintVersion(v) {
+  if (!v) return;
+  S.version = v;
+  document.querySelectorAll("[data-version]").forEach((el) => {
+    el.textContent = v.label + (v.env && v.env !== "production" ? ` · ${v.env}` : "");
+    el.title = `Release ${v.version}, commit ${v.commit}`;
+  });
+}
+
 function showLogin() {
   S.me = null;
   $("#registerForm").hidden = true;
@@ -1012,6 +1021,7 @@ $("#loginForm").addEventListener("submit", async (e) => {
     const data = await api("session", { method: "POST", body: { username: $("#lu").value, password: $("#lp").value }, quiet401: true });
     S.me = data.user;
     S.mode = data.mode;
+    paintVersion(data.version);
     showShell();
   } catch (ex) {
     err.textContent = ex.message;
@@ -1071,8 +1081,10 @@ setInterval(() => {
     const data = await api("session", { quiet401: true });
     S.me = data.user;
     S.mode = data.mode;
+    paintVersion(data.version);
     showShell();
   } catch (ex) {
+    paintVersion(ex.data?.version);
     showLogin();
     // Local demo mode only: tell the developer which test logins exist.
     if (ex.data?.demoLogins && ["localhost", "127.0.0.1"].includes(location.hostname)) {

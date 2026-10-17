@@ -2,6 +2,7 @@ import { send, clientIp } from "../lib/http.js";
 import { login, publicUser, sessionUser } from "../lib/auth.js";
 import { createSessionCookie, clearSessionCookie } from "../lib/session.js";
 import { mode, usingDemoLogins } from "../lib/store.js";
+import { versionInfo } from "../lib/version.js";
 
 // GET = who am I, POST = sign in, DELETE = sign out.
 export default async function handler(req, res) {
@@ -13,7 +14,7 @@ export default async function handler(req, res) {
       const result = await login(String(username), String(password), clientIp(req));
       if (!result.ok) return send(res, result.status, { error: result.error });
       res.setHeader("Set-Cookie", createSessionCookie(result.user.username));
-      return send(res, 200, { user: publicUser(result.user), mode: mode() });
+      return send(res, 200, { user: publicUser(result.user), mode: mode(), version: versionInfo() });
     }
     if (req.method === "DELETE") {
       res.setHeader("Set-Cookie", clearSessionCookie());
@@ -21,8 +22,8 @@ export default async function handler(req, res) {
     }
     if (req.method === "GET") {
       const user = await sessionUser(req);
-      if (!user) return send(res, 401, { error: "Please sign in.", mode: mode(), demoLogins: usingDemoLogins() });
-      return send(res, 200, { user: publicUser(user), mode: mode() });
+      if (!user) return send(res, 401, { error: "Please sign in.", mode: mode(), demoLogins: usingDemoLogins(), version: versionInfo() });
+      return send(res, 200, { user: publicUser(user), mode: mode(), version: versionInfo() });
     }
     res.setHeader("Allow", "GET, POST, DELETE");
     return send(res, 405, { error: "Method not allowed" });

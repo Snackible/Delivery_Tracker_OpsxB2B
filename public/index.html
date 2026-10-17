@@ -88,6 +88,7 @@
     <p id="loginErr" class="form-error" role="alert" hidden></p>
     <button class="btn primary block" type="submit">Sign in</button>
     <p id="demoHint" class="hint" hidden></p>
+    <p class="ver ver-login" data-version></p>
     <button id="showRegister" class="link-btn center" type="button" hidden>Register a new user</button>
   </form>
 
@@ -122,13 +123,14 @@
     <nav id="nav" class="nav"></nav>
     <div class="side-foot">
       <button id="themeBtn" class="btn ghost block" type="button"></button>
+      <p class="ver" data-version title="Release number and the commit that is running"></p>
       <div class="who"><div><strong id="whoName"></strong><span id="whoRole" class="muted"></span></div>
         <button id="logoutBtn" class="icon-btn" type="button" aria-label="Sign out" title="Sign out"><svg class="i"><use href="#i-logout"/></svg></button></div>
     </div>
   </aside>
 
   <header class="mobile-bar">
-    <div class="brand"><svg class="mark" aria-hidden="true"><use href="#brand-mark"/></svg><span>Delivery Tracker</span></div>
+    <div class="brand"><svg class="mark" aria-hidden="true"><use href="#brand-mark"/></svg><span>Delivery Tracker<small data-version></small></span></div>
     <div class="mobile-actions">
       <button id="themeBtnM" class="icon-btn" type="button" aria-label="Switch theme"></button>
       <button id="logoutBtnM" class="icon-btn" type="button" aria-label="Sign out"><svg class="i"><use href="#i-logout"/></svg></button>

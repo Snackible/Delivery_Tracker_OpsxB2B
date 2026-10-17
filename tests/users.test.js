@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { getUsers } from "../lib/store.js";
 import { login, masterMatches } from "../lib/auth.js";
+import { versionInfo } from "../lib/version.js";
 
 // These run in demo mode (no Google credentials), against data/demo-users.js.
 
@@ -28,4 +29,11 @@ test("users with a password still sign in; wrong passwords do not", async () => 
 test("an empty guess never matches the master password", async () => {
   assert.equal(await masterMatches(""), false);
   assert.equal(await masterMatches("demo-master-pass"), true);
+});
+
+test("the version label is the release number and a short commit", () => {
+  const v = versionInfo();
+  assert.match(v.version, /^\d+\.\d+\.\d+$/);
+  assert.match(v.commit, /^([0-9a-f]{7}|local|unknown)$/);
+  assert.equal(v.label, `v${v.version} · ${v.commit}`);
 });
