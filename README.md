@@ -28,7 +28,7 @@ Open http://localhost:3000. With no Google credentials it runs on bundled demo d
 
 Each order row shows its dates under the due date: ordered (BD sheet), estimated dispatch and dispatched (master), and delivered (the ops delivery date, else the master's actual delivery date).
 
-**Operations master** (`New B2B 2026`, tab `2026`, set by `SHEET_ID_MASTER`): the tracker matches each order to it by Ref No and reads its `STATUS`, `Act Del` (actual delivery date), `Courier` and `AWB` columns. Delivered, In-Transit, Cancelled, Hold, RTO, Expired and Internal PO there win over the BD sheet (hover a status to see it came from the master). Pending rows fall back to the BD sheet's dates, and Duplicate rows are skipped. **It is read only: nothing in the app can write to it.** If it cannot be read, a banner says so and the dashboard falls back to the BD sheet.
+**Operations master** (`New B2B 2026`, tab `2026`, set by `SHEET_ID_MASTER`): the tracker matches each order to it by Ref No and reads its `STATUS`, `Act Del` (actual delivery date), `Courier` and `AWB` columns. Delivered, In-Transit, Cancelled, Hold, RTO, Expired and Internal PO there win over the BD sheet (hover a status to see it came from the master). Pending rows fall back to the BD sheet's dates, and Duplicate rows are skipped. **The app reads it and writes exactly one thing to it: the `Est Dispatch` cell of a row when ops edit the estimated dispatch date** (it needs the service account to have Editor access on that sheet; nothing else in the master is ever changed). If it cannot be read, a banner says so and the dashboard falls back to the BD sheet.
 
 **Users sheet**: username, password, role (`ops`, `b2b` or `admin`), account_id, display_name, Email, Contact. `display_name` should match the Snackible POC name for "My orders". `Contact` is a WhatsApp number with country code. A row with **no password** (or no username) is a contact only: its email and WhatsApp number are used for reminders if its role is `ops`, but it can never sign in.
 
@@ -56,7 +56,7 @@ Expected dates may be `dd/mm/yy`, `17th October` and similar. **Asap is due on t
 ## Roles
 
 - **BD (`b2b`)**: set expected dates, flag urgent, cancel, reopen, mark delivered, send reminders, manage the pipeline.
-- **Ops (`ops`)**: mark delivered with a date, add notes, see the queue.
+- **Ops (`ops`)**: edit the expected delivery date (BD sheet) and the estimated dispatch date (saved in the master sheet), mark in transit or delivered, add notes, see the queue.
 - **Admin**: everything.
 
 ## Reminders

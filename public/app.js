@@ -378,11 +378,8 @@ function actionsFor(o) {
     return h + "</div>";
   }
   if (bd) {
-    // Every row has the same three controls in the same places so the column scans straight down.
-    // A row that needs a date gets its calendar button highlighted instead of a different label.
-    const needsDate = o.status === "needs_date";
-    const dateLabel = needsDate ? "Set expected date" : "Change expected date";
-    h += `<button class="btn small${needsDate ? " attn" : ""}" type="button" data-act="date" title="${dateLabel}" aria-label="${dateLabel} for ${esc(o.ref)}"><span class="lbl">${needsDate ? "Set date" : "Date"}</span></button>`;
+    // The expected delivery date is edited from the pencil on the date itself, so every row has the same
+    // three controls here in the same places.
     h += `<button class="icon-btn" type="button" data-act="urgent" aria-pressed="${o.urgent}" aria-label="${o.urgent ? "Remove urgent flag" : "Mark urgent"}" title="${o.urgent ? "Remove urgent flag" : "Mark urgent"}">${icon("flag")}</button>`;
     const why = "Can't remind yet: no delivery date is written and the estimated dispatch is not within 2 days";
     h += `<button class="btn small" type="button" data-act="remind" ${o.remindable ? `title="Remind ops" aria-label="Remind ops about ${esc(o.ref)}"` : `disabled title="${why}" aria-label="${why}"`}>${icon("bell")}<span class="lbl">Remind</span></button>`;
@@ -392,17 +389,42 @@ function actionsFor(o) {
       ${ops ? `<button type="button" data-act="note">${icon("note")}Ops note</button>` : ""}
       <button type="button" class="danger" data-act="cancel">${icon("x")}Cancel order</button></div></details>`;
   } else if (ops) {
-    if (o.status !== "in_transit") h += `<button class="btn small" type="button" data-act="transit">${icon("truck")}In transit</button>`;
-    h += `<button class="btn small primary" type="button" data-act="delivered">${icon("check")}Mark delivered</button>`;
+    if (o.status !== "in_transit") h += `<button class="btn small" type="button" data-act="transit" title="Mark in transit" aria-label="Mark ${esc(o.ref)} in transit">${icon("truck")}<span class="lbl-opt">In transit</span></button>`;
+    h += `<button class="btn small primary" type="button" data-act="delivered" title="Mark delivered" aria-label="Mark ${esc(o.ref)} delivered">${icon("check")}Delivered</button>`;
     h += `<button class="icon-btn" type="button" data-act="note" aria-label="Add a note" title="Add a note">${icon("note")}</button>`;
   }
   return h + "</div>";
 }
 
-/** The dates the sheets hold for an order: ordered, estimated dispatch, dispatched, delivered. */
+/** The smaller dates the sheets hold: ordered, dispatched, delivered. Estimated dispatch has its own column. */
 function datesHtml(o) {
   if (!o.dates?.length) return "";
-  return `<ul class="dates">${o.dates.map((d) => `<li><span>${esc(d.label)}</span>${esc(d.value)}</li>`).join("")}</ul>`;
+  const text = o.dates.map((d) => `${d.label} ${d.value}`).join(" · ");
+  return `<small class="dates-line" title="${esc(text)}">${esc(text)}</small>`;
+}
+
+/** Expected delivery date (BD sheet). BD, ops and admins can edit it. */
+function expectedCell(o) {
+  const can = (isBD() || isOps()) && !CLOSED.has(o.status);
+  const set = Boolean(o.dueLabel);
+  const verb = set ? "Change" : "Set";
+  const edit = can
+    ? `<button class="edit-date${set ? "" : " attn"}" type="button" data-act="date" title="${verb} the expected delivery date" aria-label="${verb} the expected delivery date for ${esc(o.ref)}">${icon("edit")}${set ? "" : "<span>Set</span>"}</button>`
+    : "";
+  return `<span class="dlabel">Expected delivery</span><div class="dcell"><span class="dv${set ? "" : " none"}">${set ? esc(o.dueLabel) : "Not set"}</span>${edit}</div>${o.dueFromAsap ? "<small>Asap</small>" : ""}`;
+}
+
+/** Estimated dispatch date (operations master sheet). Ops and admins can edit it. */
+function estCell(o) {
+  const editable = (o.inMaster || S.mode === "demo") && !CLOSED.has(o.status);
+  const can = isOps() && editable;
+  const set = Boolean(o.estDispatchLabel);
+  const verb = set ? "Change" : "Set";
+  const edit = can
+    ? `<button class="edit-date${set ? "" : " attn"}" type="button" data-act="est" title="${verb} the estimated dispatch date" aria-label="${verb} the estimated dispatch date for ${esc(o.ref)}">${icon("edit")}${set ? "" : "<span>Set</span>"}</button>`
+    : "";
+  const empty = o.inMaster || S.mode === "demo" ? "Not set" : "Not in master";
+  return `<span class="dlabel">Est. dispatch</span><div class="dcell"><span class="dv${set ? "" : " none"}">${set ? esc(o.estDispatchLabel) : empty}</span>${edit}</div>`;
 }
 
 function rowHtml(o, i) {
@@ -411,10 +433,11 @@ function rowHtml(o, i) {
   const sub = esc([o.poc, o.status === "in_transit" && o.shipment ? o.shipment : productLine(o)].filter(Boolean).join(" · "));
   return `<tr class="${cls}" data-ref="${esc(o.ref)}">
     <td class="c-ref"><span class="ref">${esc(o.ref)}</span>${o.urgent ? `<span class="tag-urgent">${icon("flag")}Urgent</span>` : ""}</td>
-    <td class="c-client client"><b title="${esc(o.client)}">${esc(o.client)}</b>${sub ? `<small title="${sub}">${sub}</small>` : ""}${o.opsNote ? `<small>Ops note: ${esc(o.opsNote)}</small>` : ""}</td>
-    <td class="c-due due"><span class="due-main">${o.dueLabel ? esc(o.dueLabel) : "—"}</span>${o.dueFromAsap ? "<small>Asap</small>" : ""}${datesHtml(o)}</td>
-    <td class="c-rail rail-cell">${railSvg(o, i)}</td>
+    <td class="c-client client"><b title="${esc(o.client)}">${esc(o.client)}</b>${sub ? `<small title="${sub}">${sub}</small>` : ""}${datesHtml(o)}${o.opsNote ? `<small>Ops note: ${esc(o.opsNote)}</small>` : ""}</td>
     <td class="c-status">${chip(o)}</td>
+    <td class="c-exp due">${expectedCell(o)}</td>
+    <td class="c-est due">${estCell(o)}</td>
+    <td class="c-rail rail-cell">${railSvg(o, i)}</td>
     <td class="actions">${actionsFor(o)}</td>
   </tr>`;
 }
@@ -422,7 +445,7 @@ function rowHtml(o, i) {
 function ordersTable(list, emptyTitle, emptyText) {
   if (!list.length) return `<div class="table-wrap"><div class="empty">${icon("check", "i big")}<strong>${esc(emptyTitle)}</strong>${esc(emptyText)}</div></div>`;
   return `<div class="table-wrap"><table>
-    <thead><tr><th scope="col">Order</th><th scope="col">Client and owner</th><th scope="col">Due and dates</th><th scope="col" class="rail-cell rail-head">${railHead()}</th><th scope="col">Status</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
+    <thead><tr><th scope="col">Order</th><th scope="col">Client and owner</th><th scope="col">Status</th><th scope="col">Expected delivery</th><th scope="col">Est. dispatch</th><th scope="col" class="rail-cell rail-head">${railHead()}</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
     <tbody>${list.map(rowHtml).join("")}</tbody></table></div>`;
 }
 
@@ -665,6 +688,18 @@ const handlers = {
       title: `Ops note for ${ref}`,
       body: `<label for="nt">Note</label><textarea id="nt" maxlength="500" placeholder="For example: out for delivery, new date agreed">${esc(o?.opsNote || "")}</textarea>`,
       buttons: [{ label: "Cancel" }, { label: "Save note", kind: "primary", run: async (d) => { await orderAction(ref, "note", { note: $("#nt", d).value }); await afterEdit("Note saved"); } }],
+    });
+  },
+  est: (ref) => {
+    const o = orderByRef(ref);
+    dateDialog({
+      title: `Estimated dispatch for ${ref}`,
+      label: "Estimated dispatch date (saved in the operations master sheet)",
+      value: o?.estDispatchISO || "",
+      onSave: async (v) => {
+        await orderAction(ref, "set-est-dispatch", { date: v });
+        await afterEdit("Estimated dispatch saved");
+      },
     });
   },
   remind: (ref) => openRemind([ref]),

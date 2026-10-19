@@ -4,7 +4,7 @@ import { parseDate, parseExpected, formatDMY, dayDiff } from "../lib/dates.js";
 import { computeOrder, compareOrders, summarize, OPEN_STATES } from "../lib/status.js";
 import { buildDigest } from "../lib/reminders.js";
 import { demoOrders } from "../data/demo-orders.js";
-import { masterStatusOf, masterDetail } from "../lib/store.js";
+import { masterStatusOf, masterDetail, toSheetSerial } from "../lib/store.js";
 
 const TODAY = { y: 2026, m: 10, d: 16 };
 
@@ -170,9 +170,11 @@ test("every date the sheets hold is listed, in the order things happen", () => {
     dispatchedOn: "05-10-2026",
     deliveredOn: "07-10-2026",
   });
+  assert.equal(o.estDispatchLabel, "4 Oct");
+  assert.equal(o.estDispatchISO, "2026-10-04");
+  assert.equal(o.inMaster, true);
   assert.deepEqual(o.dates, [
     { label: "Ordered", value: "2 Oct" },
-    { label: "Est. dispatch", value: "4 Oct" },
     { label: "Dispatched", value: "5 Oct" },
     { label: "Delivered", value: "7 Oct" },
   ]);
@@ -228,4 +230,10 @@ test("the daily email leaves out no-date orders with no close estimate, and list
   assert.ok(at("REF-B") > -1 && at("REF-B") < at("REF-A") && at("REF-A") < at("REF-SOON"));
   // with only far or unknown estimates there is nothing to send
   assert.equal(buildDigest([far, none]), null);
+});
+
+test("dates are written to the master as the sheet's own date serial numbers", () => {
+  assert.equal(toSheetSerial({ y: 2026, m: 1, d: 1 }), 46023); // matches the serials already in the sheet
+  assert.equal(toSheetSerial({ y: 2026, m: 10, d: 17 }), 46312);
+  assert.equal(toSheetSerial({ y: 2026, m: 10, d: 16 }) + 1, toSheetSerial({ y: 2026, m: 10, d: 17 }));
 });

@@ -1,10 +1,10 @@
 import { route } from "../lib/http.js";
-import { updateOrder, setMeta, getMeta, getOrders, httpError } from "../lib/store.js";
+import { updateOrder, setMeta, getMeta, getOrders, setMasterEstDispatch, httpError } from "../lib/store.js";
 import { notifyUrgent } from "../lib/reminders.js";
 import { parseDate, formatDMY, todayIST } from "../lib/dates.js";
 
 // One route for every order edit. Role rules (PLAN.md section 7):
-//   b2b: expectedDate, urgent, cancel, reopen     ops: in transit, delivered, note     admin: everything
+//   b2b: expected delivery date, urgent, cancel, reopen     ops: expected delivery date, estimated dispatch (master sheet), in transit, delivered, note     admin: everything
 const BD = ["b2b", "admin"];
 const OPS = ["ops", "admin"];
 
@@ -20,10 +20,18 @@ export default route({ methods: ["POST"] }, async ({ body, user, me }) => {
 
   switch (action) {
     case "set-expected": {
-      need(BD);
+      need(BD.concat(OPS));
       const date = parseDate(body.date);
       if (!date) throw httpError(400, "Enter a valid date.");
       await updateOrder(ref, { expected: formatDMY(date) });
+      return { ok: true };
+    }
+    case "set-est-dispatch": {
+      // Ops (and admins) edit the estimated dispatch date. It lives in the operations master sheet.
+      need(OPS);
+      const date = parseDate(body.date);
+      if (!date) throw httpError(400, "Enter a valid date.");
+      await setMasterEstDispatch(ref, date);
       return { ok: true };
     }
     case "urgent": {

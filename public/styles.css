@@ -335,7 +335,7 @@ a.btn { text-decoration: none; }
 .stage-sel { width: auto; min-width: 130px; min-height: 32px; }
 
 /* ---------- narrower screens: the sidebar becomes a top bar and bottom tabs ---------- */
-@media (max-width: 1260px) {
+@media (max-width: 1300px) {
   .shell { grid-template-columns: 1fr; }
   .side { display: none; }
   .mobile-bar {
@@ -497,3 +497,42 @@ tr.flash td { animation: flash 1.4s ease-out 2; }
 .side-foot .ver { padding: 0 12px; }
 .ver-login { text-align: center; margin-top: 14px; }
 .mobile-bar .brand small[data-version] { letter-spacing: 0.02em; text-transform: none; }
+
+/* the dates people act on and the status are the loudest things in a row */
+.dcell { display: flex; align-items: center; gap: 6px; }
+.dv { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.dv.none { font-size: 14px; font-weight: 600; color: var(--muted); }
+.dlabel { display: none; }
+.edit-date {
+  display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 28px; height: 28px; padding: 0 6px;
+  border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 700;
+}
+.edit-date:hover { color: var(--accent); border-color: var(--accent); }
+.edit-date .i { width: 15px; height: 15px; }
+.edit-date.attn { border: 1.5px dashed var(--accent); color: var(--accent); padding: 0 9px; }
+.dates-line { display: block; color: var(--muted); font-size: 12px; max-width: 26ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip { min-height: 32px; padding: 0 13px 0 10px; font-size: 14px; border-radius: 7px; }
+.chip .i { width: 17px; height: 17px; }
+td.c-exp, td.c-est { min-width: 96px; }
+td.c-exp small, td.c-est small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; }
+@media (min-width: 861px) {
+  .rail-cell { width: 112px; min-width: 104px; }
+  .client b, .client small { max-width: 22ch; }
+  .dates-line { max-width: 22ch; }
+}
+/* ops rows carry two action buttons; keep the table inside the page by dropping the "In transit" word (its icon and tooltip stay) */
+@media (min-width: 861px) and (max-width: 1599px) {
+  td.actions .btn .lbl-opt { display: none; }
+  .client b, .client small { max-width: 17ch; }
+  .dates-line { max-width: 17ch; }
+}
+@media (max-width: 860px) {
+  td.c-exp { grid-column: 1; grid-row: 3; }
+  td.c-est { grid-column: 2; grid-row: 3; justify-self: end; }
+  td.c-rail { grid-column: 1 / -1; grid-row: 4; max-width: none; justify-self: stretch; }
+  td.actions { grid-row: 5; }
+  td.c-exp .dlabel, td.c-est .dlabel { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+  td.c-est .dcell { justify-content: flex-end; }
+  .dates-line { max-width: none; white-space: normal; }
+  .chip { min-height: 34px; }
+}
