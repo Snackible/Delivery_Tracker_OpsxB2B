@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getUsers } from "../lib/store.js";
+import { getUsers, addUser } from "../lib/store.js";
+import { isEncrypted } from "../lib/pinVault.js";
 import { login, masterMatches } from "../lib/auth.js";
 import { versionInfo } from "../lib/version.js";
 
@@ -29,6 +30,15 @@ test("users with a password still sign in; wrong passwords do not", async () => 
 test("an empty guess never matches the master password", async () => {
   assert.equal(await masterMatches(""), false);
   assert.equal(await masterMatches("demo-master-pass"), true);
+});
+
+test("a newly registered password is stored as a hash, and still signs in", async () => {
+  await addUser({ username: "hash-test", password: "secret-1", role: "b2b", display_name: "Hash Test", email: "", contact: "" });
+  const stored = (await getUsers()).find((u) => u.username === "hash-test");
+  assert.equal(isEncrypted(stored.password), true, "never stored as typed");
+  assert.equal(JSON.stringify(stored).includes("secret-1"), false);
+  assert.equal((await login("hash-test", "secret-1", "h1")).ok, true);
+  assert.equal((await login("hash-test", "secret-2", "h2")).ok, false);
 });
 
 test("the version label is the release number and a short commit", () => {
