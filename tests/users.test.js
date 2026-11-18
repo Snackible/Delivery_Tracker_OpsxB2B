@@ -41,18 +41,28 @@ test("a newly registered password is stored as a hash, and still signs in", asyn
   assert.equal((await login("hash-test", "secret-2", "h2")).ok, false);
 });
 
-test("only an account marked in the Reset column shows up as wanting a password reset", async () => {
+test("only accounts marked in the Reset column show up as wanting a password reset", async () => {
   const requests = await getResetRequests();
-  assert.deepEqual(requests.map((r) => r.username), ["demo-forgot"]);
+  assert.deepEqual(requests.map((r) => r.username), ["demo-forgot", "demo-bulk"]);
 });
 
-test("resetting a password needs the account to be marked, then clears the mark and signs in with the new password", async () => {
+test("resetting a password needs the account to be marked, then clears a plain mark and signs in with the new password", async () => {
   await assert.rejects(() => resetUserPassword("demo-ops", "new-pass-1"), /has not asked for a reset/);
 
   await resetUserPassword("demo-forgot", "new-pass-1");
   assert.equal((await login("demo-forgot", "old-forgotten-pass", "r1")).ok, false, "the old password stops working");
   assert.equal((await login("demo-forgot", "new-pass-1", "r2")).ok, true, "the new password works");
-  assert.deepEqual((await getResetRequests()).map((r) => r.username), [], "the mark is cleared after a reset");
+  assert.deepEqual((await getResetRequests()).map((r) => r.username), ["demo-bulk"], "the plain mark is cleared after a reset");
+});
+
+test('a "***" mark stands: it stays after a reset, so the same row can be reset again without re-marking it', async () => {
+  await resetUserPassword("demo-bulk", "bulk-pass-1");
+  assert.equal((await login("demo-bulk", "bulk-pass-1", "b1")).ok, true);
+  assert.deepEqual((await getResetRequests()).map((r) => r.username), ["demo-bulk"], 'the "***" mark is still there');
+
+  await resetUserPassword("demo-bulk", "bulk-pass-2");
+  assert.equal((await login("demo-bulk", "bulk-pass-1", "b2")).ok, false, "the previous password stops working");
+  assert.equal((await login("demo-bulk", "bulk-pass-2", "b3")).ok, true, "reset again straight away, no re-marking needed");
 });
 
 test("the version label is the release number and a short commit", () => {

@@ -75,9 +75,12 @@ the abstract checklist; the two repos above are the working code.
    - `resetPassword(username, newPassword)`: requires the master password **and** the target
      account currently having a non-blank `Reset` value — reject with a clear error if it doesn't.
      **The master password alone must never be enough** to reach an account nobody marked. Hash
-     the new password the same way as registration, write it to the Password cell, and **clear
-     the Reset cell back to blank** so the same mark can't be replayed. Re-read the sheet fresh
-     (not a cache) right before checking the mark, the same way registration re-reads before
+     the new password the same way as registration, write it to the Password cell, and clear the
+     Reset cell back to blank so the same mark can't be replayed — **unless the mark is exactly
+     `***` (three stars), which is left as it was.** That's the one deliberate exception: a row
+     meant to be reset over and over (a shared bulk-import account, for example) stays marked
+     instead of needing someone to re-type `*` into the sheet after every use. Re-read the sheet
+     fresh (not a cache) right before checking the mark, the same way registration re-reads before
      checking a taken username.
    - POST endpoint taking `{ master, username, password }`; GET endpoint reporting whether it's
      enabled and the current list of flagged accounts (for the sign-in screen to show/hide the
