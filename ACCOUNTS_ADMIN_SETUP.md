@@ -87,9 +87,12 @@ the abstract checklist; the two repos above are the working code.
      link and populate a picker).
 
 6. **UI**: a "Reset a password" link next to "Register a new user" on the sign-in screen, shown
-   only when the GET above reports at least one flagged account. A small form: master password,
-   a picker of flagged accounts (label = display name, value = username), new password. Same
-   success/error handling as the existing register form in this dashboard.
+   whenever the GET above reports `enabled` (a master-admin row exists) — **not** only when
+   someone is currently flagged. A small form: master password, a picker of flagged accounts
+   (label = display name, value = username), new password. When the flagged list is empty, show a
+   notice instead of the picker/fields - "No account is currently marked for a reset. Mark a row's
+   Reset column with `*`, or contact the AI team for the master admin password." - with just a way
+   back to sign-in. Same success/error handling as the existing register form in this dashboard.
 
 7. **Tests**: a fixture account with `Reset` marked; assert `getResetRequests` lists it and
    nothing else; assert resetting an unmarked account is rejected even with the right master

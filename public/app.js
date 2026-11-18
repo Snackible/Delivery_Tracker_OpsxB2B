@@ -177,12 +177,14 @@ async function probeRegister() {
 }
 
 let resetRequests = [];
+// Shown whenever the master password itself works (a master-admin row exists), even with nobody
+// currently marked - the form then says so and points at the AI team, instead of hiding altogether.
 async function probeReset() {
   try {
     const r = await fetch("/api/reset-password");
     const data = await r.json();
     resetRequests = data.enabled ? data.requests || [] : [];
-    $("#showReset").hidden = resetRequests.length === 0;
+    $("#showReset").hidden = !data.enabled;
   } catch {
     resetRequests = [];
     $("#showReset").hidden = true;
@@ -1119,6 +1121,10 @@ $("#showReset").addEventListener("click", () => {
   $("#loginForm").hidden = true;
   $("#resetForm").hidden = false;
   $("#resetErr").hidden = true;
+  const empty = resetRequests.length === 0;
+  $("#resetEmpty").hidden = !empty;
+  $("#resetFields").hidden = empty;
+  if (empty) return;
   const sel = $("#rsu");
   sel.innerHTML = resetRequests.map((r) => `<option value="${esc(r.username)}">${esc(r.display_name)}</option>`).join("");
   $("#rsm").focus();
