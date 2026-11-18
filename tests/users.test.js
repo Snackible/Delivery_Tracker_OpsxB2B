@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getUsers, addUser } from "../lib/store.js";
+import { getUsers, addUser, getResetRequests, resetUserPassword } from "../lib/store.js";
 import { isEncrypted } from "../lib/pinVault.js";
 import { login, masterMatches } from "../lib/auth.js";
 import { versionInfo } from "../lib/version.js";
@@ -39,6 +39,20 @@ test("a newly registered password is stored as a hash, and still signs in", asyn
   assert.equal(JSON.stringify(stored).includes("secret-1"), false);
   assert.equal((await login("hash-test", "secret-1", "h1")).ok, true);
   assert.equal((await login("hash-test", "secret-2", "h2")).ok, false);
+});
+
+test("only an account marked in the Reset column shows up as wanting a password reset", async () => {
+  const requests = await getResetRequests();
+  assert.deepEqual(requests.map((r) => r.username), ["demo-forgot"]);
+});
+
+test("resetting a password needs the account to be marked, then clears the mark and signs in with the new password", async () => {
+  await assert.rejects(() => resetUserPassword("demo-ops", "new-pass-1"), /has not asked for a reset/);
+
+  await resetUserPassword("demo-forgot", "new-pass-1");
+  assert.equal((await login("demo-forgot", "old-forgotten-pass", "r1")).ok, false, "the old password stops working");
+  assert.equal((await login("demo-forgot", "new-pass-1", "r2")).ok, true, "the new password works");
+  assert.deepEqual((await getResetRequests()).map((r) => r.username), [], "the mark is cleared after a reset");
 });
 
 test("the version label is the release number and a short commit", () => {

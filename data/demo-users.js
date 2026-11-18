@@ -7,4 +7,5 @@ export const demoUsers = [
   { username: "demo-noc", password: "", role: "ops", account_id: "", display_name: "Night Ops", email: "night.ops@example.com", contact: "919800000004" }, // contact only: no password
   { username: "demo-master", password: "demo-master-pass", role: "master-admin", account_id: "", display_name: "Master", email: "master@example.com", contact: "" },
   { username: "demo-admin", password: "demo-admin-pass", role: "admin", account_id: "", display_name: "Admin", email: "admin@example.com", contact: "" },
+  { username: "demo-forgot", password: "old-forgotten-pass", role: "b2b", account_id: "", display_name: "Forgot Password", email: "", contact: "", reset: "*" }, // marked for a password reset
 ];

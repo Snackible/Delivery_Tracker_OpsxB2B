@@ -30,13 +30,16 @@ Each order row shows its dates under the due date: ordered (BD sheet), estimated
 
 **Operations master** (`New B2B 2026`, tab `2026`, set by `SHEET_ID_MASTER`): the tracker matches each order to it by Ref No and reads its `STATUS`, `Act Del` (actual delivery date), `Courier` and `AWB` columns. Delivered, In-Transit, Cancelled, Hold, RTO, Expired and Internal PO there win over the BD sheet (hover a status to see it came from the master). Pending rows fall back to the BD sheet's dates, and Duplicate rows are skipped. **The app reads it and writes exactly one thing to it: the `Est Dispatch` cell of a row when ops edit the estimated dispatch date** (it needs the service account to have Editor access on that sheet; nothing else in the master is ever changed). If it cannot be read, a banner says so and the dashboard falls back to the BD sheet.
 
-**Users sheet**: username, password, role (`ops`, `b2b` or `admin`), account_id, display_name, Email, Contact. `display_name` should match the Snackible POC name for "My orders". `Contact` is a WhatsApp number with country code. A row with **no password** (or no username) is a contact only: its email and WhatsApp number are used for reminders if its role is `ops`, but it can never sign in.
+**Users sheet**: username, password, role (`ops`, `b2b` or `admin`), account_id, display_name, Email, Contact, Reset. `display_name` should match the Snackible POC name for "My orders". `Contact` is a WhatsApp number with country code. A row with **no password** (or no username) is a contact only: its email and WhatsApp number are used for reminders if its role is `ops`, but it can never sign in. `Reset` is normally blank; see below.
 
 **Tab the app creates** in the orders spreadsheet: `Tracker_Meta` (urgent flags and ops notes). No logs are kept.
 
-## Registering new users
+## Registering new users, and resetting a password
 
-The master password is the password of the user whose role is `master-admin` in the users sheet (that role signs in as a full admin). The sign-in screen shows **Register a new user**, and whoever knows that password can add a BD or Ops account (username, password, the name shown on orders, optional email and WhatsApp number). The new row is added to the users sheet. Admin accounts are added in the sheet by hand. With no master-admin user in the sheet, registration is off. Wrong guesses are rate-limited per address.
+The master password is the password of the user whose role is `master-admin` in the users sheet (that role signs in as a full admin). With no master-admin user in the sheet, both features below are off, and wrong guesses at the master password are rate-limited per address.
+
+- **Register a new user** (shown on the sign-in screen whenever registration is on): whoever knows the master password can add a BD or Ops account (username, password, the name shown on orders, optional email and WhatsApp number). The new row is added to the users sheet. Admin accounts are added in the sheet by hand.
+- **Reset a password**: mark a row's `Reset` column with a `*` (anything non-blank works) to ask for a new password — the account holder can do this themselves if they still have sheet access, or ask whoever does. The sign-in screen then shows **Reset a password**, listing only accounts marked this way; the master password sets a new one, and the mark is cleared so the same request can't be replayed. Knowing the master password alone does not let anyone reset an account that hasn't been marked.
 
 ## How status works
 
@@ -79,6 +82,6 @@ Expected dates may be `dd/mm/yy`, `17th October` and similar. **Asap is due on t
 ## Security notes
 
 - The service-account key, `SESSION_SECRET`, `CRON_SECRET` and email key live only in environment variables. `.env` is git-ignored.
-- Sign-in compares passwords in constant time, rate-limits failures per username and address (best effort per server instance), and sets an httpOnly signed cookie that lasts 12 hours. Passwords in the users sheet are plain text today; a hashed column is a sensible next step.
+- Sign-in compares passwords in constant time, rate-limits failures per username and address (best effort per server instance), and sets an httpOnly signed cookie that lasts 12 hours. Passwords in the users sheet are salted hashes (`lib/pinVault.js`); a plain-text one is hashed the next time the users sheet is read.
 - Every API route checks the session and the role. The browser never receives the sheet IDs, passwords or stored email addresses and numbers. WhatsApp links include the number only for the recipients you chose to send to.
 - Rotate any API key that has been pasted into chat or a ticket.

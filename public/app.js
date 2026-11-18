@@ -176,6 +176,19 @@ async function probeRegister() {
   }
 }
 
+let resetRequests = [];
+async function probeReset() {
+  try {
+    const r = await fetch("/api/reset-password");
+    const data = await r.json();
+    resetRequests = data.enabled ? data.requests || [] : [];
+    $("#showReset").hidden = resetRequests.length === 0;
+  } catch {
+    resetRequests = [];
+    $("#showReset").hidden = true;
+  }
+}
+
 function paintVersion(v) {
   if (!v) return;
   S.version = v;
@@ -188,8 +201,10 @@ function paintVersion(v) {
 function showLogin() {
   S.me = null;
   $("#registerForm").hidden = true;
+  $("#resetForm").hidden = true;
   $("#loginForm").hidden = false;
   probeRegister();
+  probeReset();
   $("#shell").hidden = true;
   $("#login").hidden = false;
   $("#lp").value = "";
@@ -1092,6 +1107,42 @@ $("#registerForm").addEventListener("submit", async (e) => {
     $("#lu").value = res.username;
     $("#lp").focus();
     toast(`Account created. Sign in as ${res.username}.`);
+  } catch (ex) {
+    err.textContent = ex.message;
+    err.hidden = false;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("#showReset").addEventListener("click", () => {
+  $("#loginForm").hidden = true;
+  $("#resetForm").hidden = false;
+  $("#resetErr").hidden = true;
+  const sel = $("#rsu");
+  sel.innerHTML = resetRequests.map((r) => `<option value="${esc(r.username)}">${esc(r.display_name)}</option>`).join("");
+  $("#rsm").focus();
+});
+$("#backToLoginFromReset").addEventListener("click", () => {
+  $("#resetForm").hidden = true;
+  $("#loginForm").hidden = false;
+  $("#lu").focus();
+});
+$("#resetForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const err = $("#resetErr");
+  err.hidden = true;
+  const btn = $("button[type=submit]", e.target);
+  btn.disabled = true;
+  try {
+    const f = new FormData(e.target);
+    const res = await api("reset-password", { method: "POST", body: Object.fromEntries(f), quiet401: true });
+    e.target.reset();
+    $("#resetForm").hidden = true;
+    $("#loginForm").hidden = false;
+    $("#lu").value = res.username;
+    $("#lp").focus();
+    toast(`Password reset. Sign in as ${res.username}.`);
   } catch (ex) {
     err.textContent = ex.message;
     err.hidden = false;

@@ -91,6 +91,7 @@
     <p id="demoHint" class="hint" hidden></p>
     <p class="ver ver-login" data-version></p>
     <button id="showRegister" class="link-btn center" type="button" hidden>Register a new user</button>
+    <button id="showReset" class="link-btn center" type="button" hidden>Reset a password</button>
   </form>
 
   <form id="registerForm" class="login-card" autocomplete="off" hidden>
@@ -114,6 +115,21 @@
     <p id="registerErr" class="form-error" role="alert" hidden></p>
     <button class="btn primary block" type="submit">Create account</button>
     <button id="backToLogin" class="btn ghost block" type="button">Back to sign in</button>
+  </form>
+
+  <form id="resetForm" class="login-card" autocomplete="off" hidden>
+    <div class="brand brand-lg"><svg class="mark" aria-hidden="true"><use href="#brand-mark"/></svg><span>Delivery Tracker</span></div>
+    <p class="muted">Reset a password. You need the master admin password.</p>
+    <label for="rsm">Master admin password</label>
+    <input id="rsm" name="master" type="password" autocomplete="off" required>
+    <label for="rsu">Account</label>
+    <select id="rsu" name="username" required></select>
+    <p class="hint">Only accounts marked with a * in the users sheet's Reset column show up here.</p>
+    <label for="rsp">New password</label>
+    <input id="rsp" name="password" type="password" autocomplete="new-password" minlength="6" required>
+    <p id="resetErr" class="form-error" role="alert" hidden></p>
+    <button class="btn primary block" type="submit">Set new password</button>
+    <button id="backToLoginFromReset" class="btn ghost block" type="button">Back to sign in</button>
   </form>
 </main>
 
