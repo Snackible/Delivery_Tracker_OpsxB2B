@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getUsers, addUser, getResetRequests, resetUserPassword } from "../lib/store.js";
+import { getUsers, getUsersFresh, addUser, resetEnabled, resettableAccounts, resetUserPassword } from "../lib/store.js";
 import { isEncrypted } from "../lib/pinVault.js";
-import { login, masterMatches } from "../lib/auth.js";
+import { login, masterMatches, resetAdminMatches } from "../lib/auth.js";
 import { versionInfo } from "../lib/version.js";
+import resetApi from "../api/reset-password.js";
 
 // These run in demo mode (no Google credentials), against data/demo-users.js.
 
@@ -41,28 +42,60 @@ test("a newly registered password is stored as a hash, and still signs in", asyn
   assert.equal((await login("hash-test", "secret-2", "h2")).ok, false);
 });
 
-test("only accounts marked in the Reset column show up as wanting a password reset", async () => {
-  const requests = await getResetRequests();
-  assert.deepEqual(requests.map((r) => r.username), ["demo-forgot", "demo-bulk"]);
+test("only an admin with a mark in their own Reset cell is a reset admin; a mark on a non-admin row does nothing", async () => {
+  assert.equal(await resetEnabled(), true);
+  assert.deepEqual((await getUsers()).filter((u) => u.resetAdmin).map((u) => u.username), ["demo-admin"]);
 });
 
-test("resetting a password needs the account to be marked, then clears a plain mark and signs in with the new password", async () => {
-  await assert.rejects(() => resetUserPassword("demo-ops", "new-pass-1"), /has not asked for a reset/);
+test("the reset key is a marked admin's password - not the unmarked master's, nor a marked non-admin's", async () => {
+  assert.equal(await resetAdminMatches("demo-admin-pass"), true);
+  assert.equal(await resetAdminMatches("demo-master-pass"), false);
+  assert.equal(await resetAdminMatches("old-bulk-pass"), false);
+  assert.equal(await resetAdminMatches(""), false);
+});
 
+test("every account that can sign in can be picked; contact-only rows can't", async () => {
+  const list = resettableAccounts(await getUsersFresh()).map((a) => a.username);
+  assert.ok(list.includes("demo-forgot") && list.includes("demo-ops") && list.includes("demo-admin"));
+  assert.equal(list.includes("demo-noc"), false);
+});
+
+test("a reset sets a new password for any account, even one nobody marked; the old one stops working", async () => {
+  await assert.rejects(() => resetUserPassword("demo-noc", "new-pass-1"), /contact only/);
+  await assert.rejects(() => resetUserPassword("nobody", "new-pass-1"), (e) => e.status === 404);
   await resetUserPassword("demo-forgot", "new-pass-1");
   assert.equal((await login("demo-forgot", "old-forgotten-pass", "r1")).ok, false, "the old password stops working");
   assert.equal((await login("demo-forgot", "new-pass-1", "r2")).ok, true, "the new password works");
-  assert.deepEqual((await getResetRequests()).map((r) => r.username), ["demo-bulk"], "the plain mark is cleared after a reset");
 });
 
-test('a "***" mark stands: it stays after a reset, so the same row can be reset again without re-marking it', async () => {
-  await resetUserPassword("demo-bulk", "bulk-pass-1");
-  assert.equal((await login("demo-bulk", "bulk-pass-1", "b1")).ok, true);
-  assert.deepEqual((await getResetRequests()).map((r) => r.username), ["demo-bulk"], 'the "***" mark is still there');
+/** Calls the API handler the way Vercel does, with a minimal req/res. */
+async function callReset(method, body) {
+  const res = {
+    statusCode: 200,
+    headers: {},
+    body: "",
+    setHeader(k, v) { this.headers[k] = v; },
+    end(text) { this.body = text; this.writableEnded = true; },
+  };
+  await resetApi({ method, body, headers: { "x-forwarded-for": "9.9.9.9" }, socket: {} }, res);
+  return { status: res.statusCode, data: res.body ? JSON.parse(res.body) : null };
+}
 
-  await resetUserPassword("demo-bulk", "bulk-pass-2");
-  assert.equal((await login("demo-bulk", "bulk-pass-1", "b2")).ok, false, "the previous password stops working");
-  assert.equal((await login("demo-bulk", "bulk-pass-2", "b3")).ok, true, "reset again straight away, no re-marking needed");
+test("the API hands out the account list only for a marked admin's password, and never a name on GET", async () => {
+  const get = await callReset("GET");
+  assert.deepEqual(get.data, { enabled: true }, "GET is a yes/no only");
+
+  const denied = await callReset("POST", { action: "list", admin: "demo-master-pass" });
+  assert.equal(denied.status, 401);
+  assert.equal(denied.data.accounts, undefined);
+
+  const listed = await callReset("POST", { action: "list", admin: "demo-admin-pass" });
+  assert.equal(listed.status, 200);
+  assert.ok(listed.data.accounts.some((a) => a.username === "demo-ops"));
+
+  const reset = await callReset("POST", { admin: "demo-admin-pass", username: "demo-ops", password: "ops-new-pass" });
+  assert.equal(reset.status, 200);
+  assert.equal((await login("demo-ops", "ops-new-pass", "r3")).ok, true);
 });
 
 test("the version label is the release number and a short commit", () => {

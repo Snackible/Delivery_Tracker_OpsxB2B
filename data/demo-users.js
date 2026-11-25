@@ -6,7 +6,7 @@ export const demoUsers = [
   { username: "demo-ops", password: "demo-ops-pass", role: "ops", account_id: "", display_name: "Ops Desk", email: "ops@example.com", contact: "919800000003" },
   { username: "demo-noc", password: "", role: "ops", account_id: "", display_name: "Night Ops", email: "night.ops@example.com", contact: "919800000004" }, // contact only: no password
   { username: "demo-master", password: "demo-master-pass", role: "master-admin", account_id: "", display_name: "Master", email: "master@example.com", contact: "" },
-  { username: "demo-admin", password: "demo-admin-pass", role: "admin", account_id: "", display_name: "Admin", email: "admin@example.com", contact: "" },
-  { username: "demo-forgot", password: "old-forgotten-pass", role: "b2b", account_id: "", display_name: "Forgot Password", email: "", contact: "", reset: "*" }, // marked for a password reset
-  { username: "demo-bulk", password: "old-bulk-pass", role: "ops", account_id: "", display_name: "Bulk Import", email: "", contact: "", reset: "***" }, // standing mark: stays after a reset
+  { username: "demo-admin", password: "demo-admin-pass", role: "admin", account_id: "", display_name: "Admin", email: "admin@example.com", contact: "", reset: "*" }, // marked admin: this password can reset any account
+  { username: "demo-forgot", password: "old-forgotten-pass", role: "b2b", account_id: "", display_name: "Forgot Password", email: "", contact: "" },
+  { username: "demo-bulk", password: "old-bulk-pass", role: "ops", account_id: "", display_name: "Bulk Import", email: "", contact: "", reset: "*" }, // a mark on a non-admin row does nothing
 ];

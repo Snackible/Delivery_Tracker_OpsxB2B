@@ -1,9 +1,11 @@
 # Adding "Register a new user" + "Reset a password" to another dashboard
 
 Several Snackible internal dashboards sign people in against **one shared Google Sheet** of
-accounts. Two already have a master-admin-gated way to add a new account and to reset a
-forgotten password, built the same way in both so the sheet stays consistent no matter which
-dashboard someone used to manage it:
+accounts. Three already have a way to add a new account (gated by the master password) and to
+reset a password (gated by a marked admin's password), built the same way in all of them so the
+sheet stays consistent no matter which dashboard someone used to manage it. The Ops x B2B
+dashboard ([Ops_Dashboard](https://github.com/Snackible/Ops_Dashboard), `server/actions.js` +
+`server/lib/usersTable.js`) follows the same rules; the table covers the other two:
 
 | | B2B Delivery Tracker ("Ops x B2B") | CRM |
 |---|---|---|
@@ -14,7 +16,7 @@ dashboard someone used to manage it:
 | Reset API | `api/reset-password.js` | `app/api/reset-password/route.js` |
 | Register UI | `public/index.html` + `public/app.js` (`registerForm`) | `components/RegisterForm.jsx`, `app/register/page.jsx` |
 | Reset UI | `public/index.html` + `public/app.js` (`resetForm`) | `components/ResetForm.jsx`, `app/reset-password/page.jsx` |
-| Reference commit | `58e0ffc` (Reset feature) | `66a1962` (Reset feature) |
+| Reference version | 1.4.0 (admin-key reset) | 0.9.0 (admin-key reset) |
 
 Read whichever of those two is closest in stack to the new dashboard before writing anything —
 copy its naming, error messages and validation rather than inventing a new pattern. This file is
@@ -26,7 +28,7 @@ the abstract checklist; the two repos above are the working code.
 - **Tab**: `Users`
 - **Columns** (header text, order doesn't matter — found by name): `username`, `password`, `role`
   (`ops`, `b2b`, `admin`, or `master-admin`), `account_id`, `display_name`, `Email`, `Contact`,
-  **`Reset`** (added for the reset-password feature; blank normally).
+  **`Reset`** (blank normally; a `*` in an **admin's** row makes that admin a reset admin - see 5).
 - **Service account**: `snackible-aditi@turing-guard-506009-g7.iam.gserviceaccount.com` — share
   the sheet with this address as **Editor** (registering and resetting both write rows/cells; just
   Viewer is enough for sign-in alone).
@@ -57,9 +59,9 @@ the abstract checklist; the two repos above are the working code.
    master password), and marks a row with no username/password as sign-in-only-as-a-contact
    (never allowed to log in).
 
-3. **Master password check**: `masterMatches(guess)` — `null` if no row has role `master-admin`
-   with a password (registration/reset both off), otherwise whether `guess` matches that row's
-   password (`verifyPin` from pinVault, not a plain string compare).
+3. **Master password check** (registration only): `masterMatches(guess)` — `null` if no row has
+   role `master-admin` with a password (registration off), otherwise whether `guess` matches that
+   row's password (`verifyPin` from pinVault, not a plain string compare).
 
 4. **Register a new account** (if this dashboard doesn't have it yet): POST endpoint taking
    `{ master, username, password, role, display_name, email?, contact? }`. Validate master
@@ -67,37 +69,38 @@ the abstract checklist; the two repos above are the working code.
    hash the password; append a row with values placed by the sheet's **own** column order (read
    headers fresh, don't assume a fixed layout). Rate-limit repeated attempts per IP.
 
-5. **Reset a forgotten password** (the new piece):
+5. **Reset a password** — authorised by a *reset admin*, not by the master password:
    - Add `Reset` to the set of columns this dashboard's reader recognizes (aliases: `reset`,
      `reset password`, `password reset`, `needs reset`).
-   - `getResetRequests()`: every account with a non-blank `Reset` value (any mark — `*` by
-     convention) and a password (skip contact-only rows), returned as `{ username, display_name }`.
-   - `resetPassword(username, newPassword)`: requires the master password **and** the target
-     account currently having a non-blank `Reset` value — reject with a clear error if it doesn't.
-     **The master password alone must never be enough** to reach an account nobody marked. Hash
-     the new password the same way as registration, write it to the Password cell, and clear the
-     Reset cell back to blank so the same mark can't be replayed — **unless the mark is exactly
-     `***` (three stars), which is left as it was.** That's the one deliberate exception: a row
-     meant to be reset over and over (a shared bulk-import account, for example) stays marked
-     instead of needing someone to re-type `*` into the sheet after every use. Re-read the sheet
-     fresh (not a cache) right before checking the mark, the same way registration re-reads before
-     checking a taken username.
-   - POST endpoint taking `{ master, username, password }`; GET endpoint reporting whether it's
-     enabled and the current list of flagged accounts (for the sign-in screen to show/hide the
-     link and populate a picker).
+   - A **reset admin** is a row whose role is `admin` or `master-admin`, that has a password, and
+     whose **own** `Reset` cell is non-blank (`*` by convention; `***` or any other mark counts the
+     same). Their password is the reset key. A mark on any non-admin row does nothing.
+   - `resetEnabled()`: whether any reset admin exists. Drives whether the sign-in screen shows the
+     link; it must be a yes/no only - never return names from an unauthenticated GET.
+   - `resetAdminMatches(guess)`: `null` if no reset admin exists, otherwise whether `guess` matches
+     any reset admin's password (`verifyPin`). Read the sheet **fresh** (not a cache) for this, so
+     clearing an admin's mark takes their power away immediately. Rate-limit wrong guesses per IP.
+   - Listing accounts: `POST { action: "list", admin }` returns every account that can sign in
+     (has a username and a password; skip contact-only rows) as `{ username, display_name }` - but
+     only after `resetAdminMatches(admin)` is true. This keeps the list of names private.
+   - Resetting: `POST { admin, username, password }` checks the reset admin's password again,
+     validates the new password (6-100 characters), hashes it the same way as registration, and
+     writes **only** the Password cell. Nothing in the `Reset` column changes. Any account that
+     can sign in can be reset, marked or not; a contact-only row is rejected.
 
-6. **UI**: a "Reset a password" link next to "Register a new user" on the sign-in screen, shown
-   whenever the GET above reports `enabled` (a master-admin row exists) — **not** only when
-   someone is currently flagged. A small form: master password, a picker of flagged accounts
-   (label = display name, value = username), new password. When the flagged list is empty, show a
-   notice instead of the picker/fields - "No account is currently marked for a reset. Mark a row's
-   Reset column with `*`, or contact the AI team for the master admin password." - with just a way
-   back to sign-in. Same success/error handling as the existing register form in this dashboard.
+6. **UI**: a "Reset a password" link on the sign-in screen, shown whenever `resetEnabled()` is
+   true. Two steps: first just the admin password ("Continue"); only when that checks out, a
+   picker of every account (label = display name, value = username) and the new password. When
+   no admin is marked, the link is hidden (and if the page is opened directly it says: "Put a * in
+   an admin's Reset cell in the users sheet, then use that admin's password here - or contact the
+   AI team."). Same success/error handling as the existing register form in this dashboard.
 
-7. **Tests**: a fixture account with `Reset` marked; assert `getResetRequests` lists it and
-   nothing else; assert resetting an unmarked account is rejected even with the right master
-   password; assert resetting the marked one works, clears the mark, and the new password (not
-   the old one) signs in afterward.
+7. **Tests**: a fixture with one marked admin, one unmarked master-admin and one marked non-admin.
+   Assert only the marked admin is a reset admin; the unmarked master's and the marked non-admin's
+   passwords are both refused; the list is withheld until the right password and then includes
+   unmarked accounts but not contact-only rows; resetting an unmarked account works, the old
+   password stops working, the new one signs in, and the Reset column is untouched; clearing the
+   admin's mark switches reset off straight away.
 
 ## Don'ts
 
@@ -106,7 +109,8 @@ the abstract checklist; the two repos above are the working code.
   same header text as above so every dashboard's alias list matches.
 - Don't invent a different password-hashing scheme or a different `PIN_PEPPER` value for the new
   dashboard — it has to interoperate with every other reader of this sheet.
-- Don't let the master password alone authorize a reset. The `Reset` mark is the second factor;
-  skipping that check is the one way this feature could be misused.
+- Don't let the master password (or any password) authorise a reset unless that row is an admin
+  marked in its own `Reset` cell, and don't return account names before that check passes - those
+  two checks are what keep the feature from being misused.
 - Don't run the new dashboard against the real sheet while still testing — use demo/fixture data
   first, the same way the two existing dashboards' test suites do.

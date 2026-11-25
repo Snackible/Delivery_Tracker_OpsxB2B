@@ -119,19 +119,21 @@
 
   <form id="resetForm" class="login-card" autocomplete="off" hidden>
     <div class="brand brand-lg"><svg class="mark" aria-hidden="true"><use href="#brand-mark"/></svg><span>Delivery Tracker</span></div>
-    <p id="resetEmpty" class="hint" hidden>No account is currently marked for a reset. Mark a row's Reset column with a * in the users sheet, or contact the AI team for the master admin password.</p>
-    <div id="resetFields">
-      <p class="muted">Reset a password. You need the master admin password.</p>
-      <label for="rsm">Master admin password</label>
-      <input id="rsm" name="master" type="password" autocomplete="off" required>
+    <div id="resetUnlock">
+      <p class="muted">Reset a password. Enter the password of an admin marked with a * in the users sheet's Reset column.</p>
+      <label for="rsm">Admin password</label>
+      <input id="rsm" name="admin" type="password" autocomplete="off">
+      <button class="btn primary block" type="submit">Continue</button>
+    </div>
+    <div id="resetFields" hidden>
       <label for="rsu">Account</label>
-      <select id="rsu" name="username" required></select>
-      <p class="hint">Only accounts marked with a * in the users sheet's Reset column show up here.</p>
+      <select id="rsu" name="username"></select>
       <label for="rsp">New password</label>
-      <input id="rsp" name="password" type="password" autocomplete="new-password" minlength="6" required>
-      <p id="resetErr" class="form-error" role="alert" hidden></p>
+      <input id="rsp" name="password" type="password" autocomplete="new-password" minlength="6" maxlength="100">
+      <p class="hint">At least 6 characters.</p>
       <button class="btn primary block" type="submit">Set new password</button>
     </div>
+    <p id="resetErr" class="form-error" role="alert" hidden></p>
     <button id="backToLoginFromReset" class="btn ghost block" type="button">Back to sign in</button>
   </form>
 </main>

@@ -176,17 +176,14 @@ async function probeRegister() {
   }
 }
 
-let resetRequests = [];
-// Shown whenever the master password itself works (a master-admin row exists), even with nobody
-// currently marked - the form then says so and points at the AI team, instead of hiding altogether.
+// Shown whenever some admin is marked with a * in the users sheet's Reset column: that admin's password is
+// what authorises a reset. The answer is a yes/no only - no names reach the sign-in screen.
 async function probeReset() {
   try {
     const r = await fetch("/api/reset-password");
     const data = await r.json();
-    resetRequests = data.enabled ? data.requests || [] : [];
     $("#showReset").hidden = !data.enabled;
   } catch {
-    resetRequests = [];
     $("#showReset").hidden = true;
   }
 }
@@ -1117,16 +1114,15 @@ $("#registerForm").addEventListener("submit", async (e) => {
   }
 });
 
+// Two steps: the marked admin's password first, then - only once it checks out - the account list.
 $("#showReset").addEventListener("click", () => {
   $("#loginForm").hidden = true;
   $("#resetForm").hidden = false;
   $("#resetErr").hidden = true;
-  const empty = resetRequests.length === 0;
-  $("#resetEmpty").hidden = !empty;
-  $("#resetFields").hidden = empty;
-  if (empty) return;
-  const sel = $("#rsu");
-  sel.innerHTML = resetRequests.map((r) => `<option value="${esc(r.username)}">${esc(r.display_name)}</option>`).join("");
+  $("#resetForm").reset();
+  $("#resetUnlock").hidden = false;
+  $("#resetFields").hidden = true;
+  $("#rsu").innerHTML = "";
   $("#rsm").focus();
 });
 $("#backToLoginFromReset").addEventListener("click", () => {
@@ -1138,11 +1134,25 @@ $("#resetForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const err = $("#resetErr");
   err.hidden = true;
-  const btn = $("button[type=submit]", e.target);
+  const unlocking = $("#resetFields").hidden;
+  const btn = $("button[type=submit]", unlocking ? $("#resetUnlock") : $("#resetFields"));
   btn.disabled = true;
   try {
-    const f = new FormData(e.target);
-    const res = await api("reset-password", { method: "POST", body: Object.fromEntries(f), quiet401: true });
+    if (unlocking) {
+      const r = await api("reset-password", { method: "POST", body: { action: "list", admin: $("#rsm").value }, quiet401: true });
+      $("#rsu").innerHTML = r.accounts
+        .map((a) => `<option value="${esc(a.username)}">${esc(a.display_name === a.username ? a.username : `${a.display_name} (${a.username})`)}</option>`)
+        .join("");
+      $("#resetUnlock").hidden = true;
+      $("#resetFields").hidden = false;
+      $("#rsu").focus();
+      return;
+    }
+    const res = await api("reset-password", {
+      method: "POST",
+      body: { admin: $("#rsm").value, username: $("#rsu").value, password: $("#rsp").value },
+      quiet401: true,
+    });
     e.target.reset();
     $("#resetForm").hidden = true;
     $("#loginForm").hidden = false;

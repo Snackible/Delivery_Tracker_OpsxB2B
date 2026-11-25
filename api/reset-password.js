@@ -1,17 +1,16 @@
 import { send, clientIp } from "../lib/http.js";
-import { masterMatches, registrationEnabled, isRateLimited, recordFail } from "../lib/auth.js";
-import { getResetRequests, resetUserPassword, httpError } from "../lib/store.js";
+import { resetAdminMatches, isRateLimited, recordFail } from "../lib/auth.js";
+import { getUsersFresh, resetEnabled, resettableAccounts, resetUserPassword, httpError } from "../lib/store.js";
 
-// Reset a forgotten password. Allowed only with the master password (the password of the user whose role is
-// master-admin in the users sheet), and only for an account someone has already marked with a * in its Reset
-// column - so knowing the master password alone is not enough to reach into any account.
+// Reset a password. Authorised by the password of an admin marked with a * in their own Reset cell in the users
+// sheet; that password can set a new password for any account that can sign in. Same rules as the CRM and the
+// Ops x B2B dashboard, which share the sheet.
+//   GET                                  -> { enabled }  (a yes/no for the sign-in screen, never a name)
+//   POST { action: "list", admin }       -> { accounts } (only for a marked admin's password)
+//   POST { admin, username, password }   -> sets the new password
 export default async function handler(req, res) {
   try {
-    if (req.method === "GET") {
-      // The sign-in screen asks this to decide whether to show "Reset a password", and who it's for.
-      const [enabled, requests] = await Promise.all([registrationEnabled(), getResetRequests()]);
-      return send(res, 200, { enabled, requests });
-    }
+    if (req.method === "GET") return send(res, 200, { enabled: await resetEnabled() });
     if (req.method !== "POST") {
       res.setHeader("Allow", "GET, POST");
       return send(res, 405, { error: "Method not allowed" });
@@ -21,12 +20,14 @@ export default async function handler(req, res) {
     const key = `reset-password|${clientIp(req)}`;
     if (isRateLimited(key)) return send(res, 429, { error: "Too many attempts. Try again in a few minutes." });
 
-    const ok = await masterMatches(String(body.master ?? ""));
-    if (ok === null) return send(res, 403, { error: "Password reset is not switched on. The users sheet needs a user with the role master-admin." });
+    const ok = await resetAdminMatches(String(body.admin ?? ""));
+    if (ok === null) return send(res, 403, { error: "Password reset is not switched on. Put a * in an admin's Reset cell in the users sheet." });
     if (!ok) {
       recordFail(key);
-      return send(res, 401, { error: "That is not the master admin password." });
+      return send(res, 401, { error: "That isn't the password of an admin marked for resets." });
     }
+
+    if (body.action === "list") return send(res, 200, { accounts: resettableAccounts(await getUsersFresh()) });
 
     const username = String(body.username ?? "").trim();
     const password = String(body.password ?? "");
